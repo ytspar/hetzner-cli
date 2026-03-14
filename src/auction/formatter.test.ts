@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { AuctionServer } from "../types.js";
 import { formatAuctionDetails, formatAuctionList } from "./formatter.js";
+import type { AuctionServer } from "./types.js";
 
 const RAM_ECC_REGEX = /32 GB\s*ECC/;
 

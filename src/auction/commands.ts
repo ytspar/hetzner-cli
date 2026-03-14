@@ -1,12 +1,12 @@
 import { type Command, Option } from "commander";
 import { error, formatJson } from "../shared/formatter.js";
-import type { AuctionFilterOptions } from "../types.js";
 import {
   fetchAuctionServers,
   filterAuctionServers,
   sortAuctionServers,
 } from "./client.js";
 import { formatAuctionDetails, formatAuctionList } from "./formatter.js";
+import type { AuctionFilterOptions } from "./types.js";
 
 interface AuctionListOptions {
   auctionOnly?: boolean;
@@ -65,6 +65,49 @@ function parseNum(val: string | undefined): number | undefined {
   }
   const n = Number(val);
   return Number.isNaN(n) ? undefined : n;
+}
+
+function buildFilters(options: AuctionListOptions): AuctionFilterOptions {
+  return {
+    minPrice: parseNum(options.minPrice),
+    maxPrice: parseNum(options.maxPrice),
+    maxHourlyPrice: parseNum(options.maxHourlyPrice),
+    minRam: parseNum(options.minRam),
+    maxRam: parseNum(options.maxRam),
+    cpu: options.cpu,
+    datacenter: options.datacenter,
+    minDiskSize: parseNum(options.minDiskSize),
+    maxDiskSize: parseNum(options.maxDiskSize),
+    minDiskCount: parseNum(options.minDiskCount),
+    maxDiskCount: parseNum(options.maxDiskCount),
+    diskType: options.diskType,
+    minBandwidth: parseNum(options.minBandwidth),
+    ecc: options.ecc ? true : undefined,
+    gpu: options.gpu ? true : undefined,
+    inic: options.inic ? true : undefined,
+    highio: options.highio ? true : undefined,
+    specials: options.specials,
+    fixedPrice: resolveFixedPrice(options.fixedPrice, options.auctionOnly),
+    maxSetupPrice: options.noSetupFee ? 0 : parseNum(options.maxSetupPrice),
+    minCpuCount: parseNum(options.minCpuCount),
+    maxCpuCount: parseNum(options.maxCpuCount),
+    text: options.search,
+  };
+}
+
+function auctionAction(fn: () => Promise<void>): () => Promise<void> {
+  return async () => {
+    try {
+      await fn();
+    } catch (err) {
+      console.error(
+        error(
+          err instanceof Error ? err.message : "Failed to fetch auction data"
+        )
+      );
+      process.exit(1);
+    }
+  };
 }
 
 export function registerAuctionCommands(parent: Command): void {
@@ -145,43 +188,13 @@ export function registerAuctionCommands(parent: Command): void {
     )
     .option("--desc", "Sort in descending order")
     .option("--limit <n>", "Limit output rows")
-    .action(async (options: AuctionListOptions) => {
-      try {
+    .action((options: AuctionListOptions) =>
+      auctionAction(async () => {
         const { server: servers } = await fetchAuctionServers(
           options.currency as "EUR" | "USD"
         );
 
-        const filters: AuctionFilterOptions = {
-          minPrice: parseNum(options.minPrice),
-          maxPrice: parseNum(options.maxPrice),
-          maxHourlyPrice: parseNum(options.maxHourlyPrice),
-          minRam: parseNum(options.minRam),
-          maxRam: parseNum(options.maxRam),
-          cpu: options.cpu,
-          datacenter: options.datacenter,
-          minDiskSize: parseNum(options.minDiskSize),
-          maxDiskSize: parseNum(options.maxDiskSize),
-          minDiskCount: parseNum(options.minDiskCount),
-          maxDiskCount: parseNum(options.maxDiskCount),
-          diskType: options.diskType,
-          minBandwidth: parseNum(options.minBandwidth),
-          ecc: options.ecc ? true : undefined,
-          gpu: options.gpu ? true : undefined,
-          inic: options.inic ? true : undefined,
-          highio: options.highio ? true : undefined,
-          specials: options.specials,
-          fixedPrice: resolveFixedPrice(
-            options.fixedPrice,
-            options.auctionOnly
-          ),
-          maxSetupPrice: options.noSetupFee
-            ? 0
-            : parseNum(options.maxSetupPrice),
-          minCpuCount: parseNum(options.minCpuCount),
-          maxCpuCount: parseNum(options.maxCpuCount),
-          text: options.search,
-        };
-
+        const filters = buildFilters(options);
         let filtered = filterAuctionServers(servers, filters);
         filtered = sortAuctionServers(
           filtered,
@@ -199,15 +212,8 @@ export function registerAuctionCommands(parent: Command): void {
         } else {
           console.log(formatAuctionList(filtered));
         }
-      } catch (err) {
-        console.error(
-          error(
-            err instanceof Error ? err.message : "Failed to fetch auction data"
-          )
-        );
-        process.exit(1);
-      }
-    });
+      })()
+    );
 
   auction
     .command("show <id>")
@@ -222,8 +228,8 @@ export function registerAuctionCommands(parent: Command): void {
         .choices(["EUR", "USD"])
         .default("EUR")
     )
-    .action(async (id: string, options: AuctionShowOptions) => {
-      try {
+    .action((id: string, options: AuctionShowOptions) =>
+      auctionAction(async () => {
         const serverId = Number.parseInt(id, 10);
         if (Number.isNaN(serverId)) {
           console.error(error("Invalid server ID"));
@@ -245,13 +251,6 @@ export function registerAuctionCommands(parent: Command): void {
         } else {
           console.log(formatAuctionDetails(server));
         }
-      } catch (err) {
-        console.error(
-          error(
-            err instanceof Error ? err.message : "Failed to fetch auction data"
-          )
-        );
-        process.exit(1);
-      }
-    });
+      })()
+    );
 }

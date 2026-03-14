@@ -1,9 +1,9 @@
 import type { Command } from "commander";
+import { output } from "../../shared/helpers.js";
 import { formatDatacenterDetails, formatDatacenterList } from "../formatter.js";
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -19,7 +19,7 @@ export function registerDatacenterCommands(parent: Command): void {
     .action(
       cloudAction(async (client, options: CloudActionOptions) => {
         const datacenters = await client.listDatacenters();
-        cloudOutput(datacenters, formatDatacenterList, options);
+        output(datacenters, formatDatacenterList, options);
       })
     );
 
@@ -33,7 +33,7 @@ export function registerDatacenterCommands(parent: Command): void {
             client.listDatacenters({ name })
           );
           const datacenter = await client.getDatacenter(id);
-          cloudOutput(datacenter, formatDatacenterDetails, options);
+          output(datacenter, formatDatacenterDetails, options);
         }
       )
     );

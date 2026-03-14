@@ -23,7 +23,7 @@ function yellow(text: string) {
 }
 
 export function getMainHelp(): string {
-  return `<pre class="table-output">${bold("hetzner-cli")} ${dim("v2.2.0")} — Unified CLI for Hetzner Robot & Cloud API
+  return `<pre class="table-output">${bold("hetzner-cli")} ${dim("v2.4.0")} — Unified CLI for Hetzner Robot & Cloud API
 
 ${cyan("USAGE")}
   ${dim("$")} hetzner ${dim("<command>")} ${dim("[options]")}

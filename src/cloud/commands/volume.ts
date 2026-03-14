@@ -1,11 +1,10 @@
 import type { Command } from "commander";
 import { success } from "../../shared/formatter.js";
+import { confirmAction, output } from "../../shared/helpers.js";
 import { formatVolumeDetails, formatVolumeList } from "../formatter.js";
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudConfirm,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -34,7 +33,7 @@ export function registerVolumeCommands(parent: Command): void {
             sort: options.sort,
             status: options.status,
           });
-          cloudOutput(volumes, formatVolumeList, options);
+          output(volumes, formatVolumeList, options);
         }
       )
     );
@@ -49,7 +48,7 @@ export function registerVolumeCommands(parent: Command): void {
             client.listVolumes({ name })
           );
           const vol = await client.getVolume(id);
-          cloudOutput(vol, formatVolumeDetails, options);
+          output(vol, formatVolumeDetails, options);
         }
       )
     );
@@ -107,7 +106,7 @@ export function registerVolumeCommands(parent: Command): void {
           );
           const vol = await client.getVolume(id);
           if (
-            !(await cloudConfirm(
+            !(await confirmAction(
               `Delete volume '${vol.name}' (ID: ${id})?`,
               options
             ))

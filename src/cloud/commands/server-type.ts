@@ -1,9 +1,9 @@
 import type { Command } from "commander";
+import { output } from "../../shared/helpers.js";
 import { formatServerTypeDetails, formatServerTypeList } from "../formatter.js";
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -19,7 +19,7 @@ export function registerServerTypeCommands(parent: Command): void {
     .action(
       cloudAction(async (client, options: CloudActionOptions) => {
         const types = await client.listServerTypes();
-        cloudOutput(types, formatServerTypeList, options);
+        output(types, formatServerTypeList, options);
       })
     );
 
@@ -33,7 +33,7 @@ export function registerServerTypeCommands(parent: Command): void {
             client.listServerTypes({ name })
           );
           const type = await client.getServerType(id);
-          cloudOutput(type, formatServerTypeDetails, options);
+          output(type, formatServerTypeDetails, options);
         }
       )
     );

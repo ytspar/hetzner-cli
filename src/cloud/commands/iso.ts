@@ -1,9 +1,9 @@
 import type { Command } from "commander";
+import { output } from "../../shared/helpers.js";
 import { formatIsoDetails, formatIsoList } from "../formatter.js";
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -26,7 +26,7 @@ export function registerIsoCommands(parent: Command): void {
             name: options.name,
             architecture: options.architecture,
           });
-          cloudOutput(isos, formatIsoList, options);
+          output(isos, formatIsoList, options);
         }
       )
     );
@@ -41,7 +41,7 @@ export function registerIsoCommands(parent: Command): void {
             client.listIsos({ name })
           );
           const iso = await client.getIso(id);
-          cloudOutput(iso, formatIsoDetails, options);
+          output(iso, formatIsoDetails, options);
         }
       )
     );

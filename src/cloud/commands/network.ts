@@ -1,11 +1,10 @@
 import type { Command } from "commander";
 import { success } from "../../shared/formatter.js";
+import { confirmAction, output } from "../../shared/helpers.js";
 import { formatNetworkDetails, formatNetworkList } from "../formatter.js";
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudConfirm,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -26,7 +25,7 @@ export function registerNetworkCommands(parent: Command): void {
           const networks = await client.listNetworks({
             label_selector: options.labelSelector,
           });
-          cloudOutput(networks, formatNetworkList, options);
+          output(networks, formatNetworkList, options);
         }
       )
     );
@@ -41,7 +40,7 @@ export function registerNetworkCommands(parent: Command): void {
             client.listNetworks({ name })
           );
           const net = await client.getNetwork(id);
-          cloudOutput(net, formatNetworkDetails, options);
+          output(net, formatNetworkDetails, options);
         }
       )
     );
@@ -78,7 +77,7 @@ export function registerNetworkCommands(parent: Command): void {
           );
           const net = await client.getNetwork(id);
           if (
-            !(await cloudConfirm(
+            !(await confirmAction(
               `Delete network '${net.name}' (ID: ${id})?`,
               options
             ))

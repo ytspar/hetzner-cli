@@ -13,13 +13,13 @@
  *   all bandwidth 1000 Mbit/s, all setup_price 0
  */
 import { beforeAll, describe, expect, it } from "vitest";
-import type { AuctionResponse, AuctionServer } from "../types.js";
 import {
   fetchAuctionServers,
   filterAuctionServers,
   sortAuctionServers,
 } from "./client.js";
 import { formatAuctionDetails, formatAuctionList } from "./formatter.js";
+import type { AuctionResponse, AuctionServer } from "./types.js";
 
 const FSN_PREFIX_REGEX = /^FSN/;
 const HEL_PREFIX_REGEX = /^HEL/;

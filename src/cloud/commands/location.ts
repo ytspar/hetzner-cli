@@ -1,9 +1,9 @@
 import type { Command } from "commander";
+import { output } from "../../shared/helpers.js";
 import { formatLocationDetails, formatLocationList } from "../formatter.js";
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -19,7 +19,7 @@ export function registerLocationCommands(parent: Command): void {
     .action(
       cloudAction(async (client, options: CloudActionOptions) => {
         const locations = await client.listLocations();
-        cloudOutput(locations, formatLocationList, options);
+        output(locations, formatLocationList, options);
       })
     );
 
@@ -33,7 +33,7 @@ export function registerLocationCommands(parent: Command): void {
             client.listLocations({ name })
           );
           const location = await client.getLocation(id);
-          cloudOutput(location, formatLocationDetails, options);
+          output(location, formatLocationDetails, options);
         }
       )
     );

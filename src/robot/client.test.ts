@@ -27,7 +27,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([]),
+        text: () => Promise.resolve(JSON.stringify([])),
       });
 
       await client.listServers();
@@ -77,11 +77,22 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
-        json: () => Promise.reject(new Error("No content")),
+        text: () => Promise.resolve(""),
       });
 
       // deleteRdns returns void, so we just check it doesn't throw
       await expect(client.deleteRdns("1.2.3.4")).resolves.not.toThrow();
+    });
+
+    it("should handle 200 with empty body", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve(""),
+      });
+
+      // Hetzner Robot API returns 200 with empty body for some DELETE operations
+      await expect(client.deleteSshKey("ab:cd:ef")).resolves.not.toThrow();
     });
   });
 
@@ -93,7 +104,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockServers),
+        text: () => Promise.resolve(JSON.stringify(mockServers)),
       });
 
       const result = await client.listServers();
@@ -112,7 +123,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockServer),
+        text: () => Promise.resolve(JSON.stringify(mockServer)),
       });
 
       const result = await client.getServer("1.2.3.4");
@@ -131,7 +142,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockServer),
+        text: () => Promise.resolve(JSON.stringify(mockServer)),
       });
 
       await client.getServer(123);
@@ -146,7 +157,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ server: { server_name: "new-name" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ server: { server_name: "new-name" } })
+          ),
       });
 
       await client.updateServerName(123, "new-name");
@@ -167,7 +181,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockCancellation),
+        text: () => Promise.resolve(JSON.stringify(mockCancellation)),
       });
 
       const result = await client.getCancellation(123);
@@ -183,7 +197,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ cancellation: { cancelled: true } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ cancellation: { cancelled: true } })
+          ),
       });
 
       await client.cancelServer(123, "2024-12-31", ["price", "service"]);
@@ -201,6 +218,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.revokeCancellation(123);
@@ -220,7 +238,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockResets),
+        text: () => Promise.resolve(JSON.stringify(mockResets)),
       });
 
       const result = await client.listResetOptions();
@@ -236,7 +254,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ reset: { type: ["sw", "hw"] } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ reset: { type: ["sw", "hw"] } })),
       });
 
       await client.getResetOptions(123);
@@ -251,7 +270,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ reset: { server_number: 123 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ reset: { server_number: 123 } })),
       });
 
       await client.resetServer(123);
@@ -269,7 +289,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ reset: { server_number: 123 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ reset: { server_number: 123 } })),
       });
 
       await client.resetServer(123, "hw");
@@ -289,7 +310,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ boot: { rescue: null, linux: null } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ boot: { rescue: null, linux: null } })
+          ),
       });
 
       await client.getBootConfig(123);
@@ -304,8 +328,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () =>
-          Promise.resolve({ rescue: { active: true, password: "abc123" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ rescue: { active: true, password: "abc123" } })
+          ),
       });
 
       await client.activateRescue(123, "linux", 64, ["fingerprint1"]);
@@ -323,7 +349,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ rescue: { active: false } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ rescue: { active: false } })),
       });
 
       await client.deactivateRescue(123);
@@ -338,7 +365,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ rescue: { password: "old-pass" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ rescue: { password: "old-pass" } })),
       });
 
       await client.getLastRescue(123);
@@ -353,7 +381,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ linux: { active: true } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ linux: { active: true } })),
       });
 
       await client.activateLinux(123, "Debian-12", 64, "en", ["key1"]);
@@ -371,7 +400,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ linux: { active: false } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ linux: { active: false } })),
       });
 
       await client.deactivateLinux(123);
@@ -386,7 +416,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ vnc: { active: true } }),
+        text: () => Promise.resolve(JSON.stringify({ vnc: { active: true } })),
       });
 
       await client.activateVnc(123, "Debian-12", 64, "en");
@@ -401,7 +431,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ windows: { active: true } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ windows: { active: true } })),
       });
 
       await client.activateWindows(123, "standard", "en");
@@ -418,7 +449,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ ip: { ip: "1.2.3.4" } }]),
+        text: () =>
+          Promise.resolve(JSON.stringify([{ ip: { ip: "1.2.3.4" } }])),
       });
 
       await client.listIps();
@@ -433,7 +465,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ ip: { ip: "1.2.3.4" } }),
+        text: () => Promise.resolve(JSON.stringify({ ip: { ip: "1.2.3.4" } })),
       });
 
       await client.getIp("1.2.3.4");
@@ -448,7 +480,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ ip: { traffic_warnings: true } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ ip: { traffic_warnings: true } })),
       });
 
       await client.updateIp("1.2.3.4", true, 100, 1000, 10);
@@ -466,7 +499,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ mac: { mac: "aa:bb:cc:dd:ee:ff" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ mac: { mac: "aa:bb:cc:dd:ee:ff" } })
+          ),
       });
 
       await client.generateIpMac("1.2.3.4");
@@ -481,6 +517,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteIpMac("1.2.3.4");
@@ -497,7 +534,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ subnet: { ip: "10.0.0.0" } }]),
+        text: () =>
+          Promise.resolve(JSON.stringify([{ subnet: { ip: "10.0.0.0" } }])),
       });
 
       await client.listSubnets();
@@ -512,7 +550,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ subnet: { ip: "10.0.0.0" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ subnet: { ip: "10.0.0.0" } })),
       });
 
       await client.getSubnet("10.0.0.0");
@@ -527,7 +566,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ subnet: {} }),
+        text: () => Promise.resolve(JSON.stringify({ subnet: {} })),
       });
 
       await client.updateSubnet("10.0.0.0", true, 100, 1000, 10);
@@ -542,7 +581,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ mac: { mac: "aa:bb:cc:dd:ee:ff" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ mac: { mac: "aa:bb:cc:dd:ee:ff" } })
+          ),
       });
 
       await client.generateSubnetMac("10.0.0.0");
@@ -559,7 +601,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ failover: { ip: "1.2.3.4" } }]),
+        text: () =>
+          Promise.resolve(JSON.stringify([{ failover: { ip: "1.2.3.4" } }])),
       });
 
       await client.listFailovers();
@@ -574,8 +617,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () =>
-          Promise.resolve({ failover: { active_server_ip: "5.6.7.8" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ failover: { active_server_ip: "5.6.7.8" } })
+          ),
       });
 
       await client.switchFailover("1.2.3.4", "5.6.7.8");
@@ -593,6 +638,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteFailoverRouting("1.2.3.4");
@@ -609,10 +655,12 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () =>
-          Promise.resolve([
-            { rdns: { ip: "1.2.3.4", ptr: "host.example.com" } },
-          ]),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify([
+              { rdns: { ip: "1.2.3.4", ptr: "host.example.com" } },
+            ])
+          ),
       });
 
       await client.listRdns();
@@ -627,7 +675,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ rdns: { ptr: "host.example.com" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ rdns: { ptr: "host.example.com" } })
+          ),
       });
 
       await client.createRdns("1.2.3.4", "host.example.com");
@@ -645,7 +696,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ rdns: { ptr: "new.example.com" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ rdns: { ptr: "new.example.com" } })),
       });
 
       await client.updateRdns("1.2.3.4", "new.example.com");
@@ -662,7 +714,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ key: { fingerprint: "ab:cd:ef" } }]),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify([{ key: { fingerprint: "ab:cd:ef" } }])
+          ),
       });
 
       await client.listSshKeys();
@@ -677,7 +732,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ key: { fingerprint: "ab:cd:ef" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ key: { fingerprint: "ab:cd:ef" } })),
       });
 
       await client.createSshKey("my-key", "ssh-rsa AAAA...");
@@ -695,7 +751,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ key: { name: "new-name" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ key: { name: "new-name" } })),
       });
 
       await client.updateSshKey("ab:cd:ef", "new-name");
@@ -709,7 +766,8 @@ describe("HetznerRobotClient", () => {
     it("should delete SSH key", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        status: 204,
+        status: 200,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteSshKey("ab:cd:ef");
@@ -726,7 +784,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall: { status: "active" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall: { status: "active" } })),
       });
 
       await client.getFirewall(123);
@@ -741,7 +800,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall: { status: "active" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall: { status: "active" } })),
       });
 
       await client.updateFirewall(123, "active");
@@ -759,6 +819,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteFirewall(123);
@@ -773,7 +834,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ firewall_template: { id: 1 } }]),
+        text: () =>
+          Promise.resolve(JSON.stringify([{ firewall_template: { id: 1 } }])),
       });
 
       await client.listFirewallTemplates();
@@ -788,7 +850,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall_template: { id: 1 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall_template: { id: 1 } })),
       });
 
       await client.createFirewallTemplate("my-template", true, false, true);
@@ -803,6 +866,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteFirewallTemplate(1);
@@ -819,7 +883,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ vswitch: { id: 1 } }]),
+        text: () => Promise.resolve(JSON.stringify([{ vswitch: { id: 1 } }])),
       });
 
       await client.listVSwitches();
@@ -834,7 +898,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ vswitch: { id: 1 } }),
+        text: () => Promise.resolve(JSON.stringify({ vswitch: { id: 1 } })),
       });
 
       await client.createVSwitch("my-vswitch", 4000);
@@ -852,7 +916,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ vswitch: { id: 1 } }),
+        text: () => Promise.resolve(JSON.stringify({ vswitch: { id: 1 } })),
       });
 
       await client.updateVSwitch(1, "new-name", 4001);
@@ -867,6 +931,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteVSwitch(1);
@@ -881,7 +946,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ vswitch: { id: 1 } }),
+        text: () => Promise.resolve(JSON.stringify({ vswitch: { id: 1 } })),
       });
 
       await client.addServerToVSwitch(1, 123);
@@ -899,6 +964,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.removeServerFromVSwitch(1, 123);
@@ -915,7 +981,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ storagebox: { id: 1 } }]),
+        text: () =>
+          Promise.resolve(JSON.stringify([{ storagebox: { id: 1 } }])),
       });
 
       await client.listStorageBoxes();
@@ -930,7 +997,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ storagebox: { id: 1 } }),
+        text: () => Promise.resolve(JSON.stringify({ storagebox: { id: 1 } })),
       });
 
       await client.updateStorageBox(1, "my-box", true, true, true, true, false);
@@ -945,7 +1012,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ password: "new-password" }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ password: "new-password" })),
       });
 
       const result = await client.resetStorageBoxPassword(1);
@@ -957,7 +1025,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ snapshot: { name: "snap1" } }]),
+        text: () =>
+          Promise.resolve(JSON.stringify([{ snapshot: { name: "snap1" } }])),
       });
 
       await client.listStorageBoxSnapshots(1);
@@ -972,7 +1041,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ snapshot: { name: "snap1" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ snapshot: { name: "snap1" } })),
       });
 
       await client.createStorageBoxSnapshot(1);
@@ -987,6 +1057,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteStorageBoxSnapshot(1, "snap1");
@@ -1001,6 +1072,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.revertStorageBoxSnapshot(1, "snap1");
@@ -1015,7 +1087,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ subaccount: { username: "sub1" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ subaccount: { username: "sub1" } })),
       });
 
       await client.createStorageBoxSubaccount(
@@ -1041,7 +1114,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ traffic: { data: [] } }),
+        text: () => Promise.resolve(JSON.stringify({ traffic: { data: [] } })),
       });
 
       await client.getTraffic(
@@ -1067,7 +1140,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ wol: { server_number: 123 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ wol: { server_number: 123 } })),
       });
 
       await client.getWol(123);
@@ -1082,7 +1156,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ wol: { server_number: 123 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ wol: { server_number: 123 } })),
       });
 
       await client.sendWol(123);
@@ -1099,7 +1174,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ product: { id: "AX41" } }]),
+        text: () =>
+          Promise.resolve(JSON.stringify([{ product: { id: "AX41" } }])),
       });
 
       await client.listServerProducts();
@@ -1114,7 +1190,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ product: { id: 1 } }]),
+        text: () => Promise.resolve(JSON.stringify([{ product: { id: 1 } }])),
       });
 
       await client.listServerMarketProducts();
@@ -1129,7 +1205,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ transaction: { id: "TX-1" } }]),
+        text: () =>
+          Promise.resolve(JSON.stringify([{ transaction: { id: "TX-1" } }])),
       });
 
       await client.listServerTransactions();
@@ -1144,7 +1221,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ transaction: { id: "TX-1" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ transaction: { id: "TX-1" } })),
       });
 
       await client.orderServer(
@@ -1169,7 +1247,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ transaction: { id: "TX-1" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ transaction: { id: "TX-1" } })),
       });
 
       await client.orderServerMarket(
@@ -1195,7 +1274,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ snapshotplan: { status: "enabled" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ snapshotplan: { status: "enabled" } })
+          ),
       });
 
       await client.getStorageBoxSnapshotPlan(1);
@@ -1210,7 +1292,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ snapshotplan: { status: "enabled" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ snapshotplan: { status: "enabled" } })
+          ),
       });
 
       await client.updateStorageBoxSnapshotPlan(1, "enabled", 0, 3, 1, 15, 10);
@@ -1227,7 +1312,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([{ subaccount: { username: "sub1" } }]),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify([{ subaccount: { username: "sub1" } }])
+          ),
       });
 
       await client.listStorageBoxSubaccounts(1);
@@ -1242,7 +1330,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ subaccount: { username: "sub1" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ subaccount: { username: "sub1" } })),
       });
 
       await client.updateStorageBoxSubaccount(
@@ -1266,6 +1355,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteStorageBoxSubaccount(1, "sub1");
@@ -1280,7 +1370,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ password: "new-pass" }),
+        text: () => Promise.resolve(JSON.stringify({ password: "new-pass" })),
       });
 
       const result = await client.resetStorageBoxSubaccountPassword(1, "sub1");
@@ -1298,7 +1388,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ rescue: { active: false } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ rescue: { active: false } })),
       });
 
       await client.getRescue(123);
@@ -1313,7 +1404,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ linux: { active: false } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ linux: { active: false } })),
       });
 
       await client.getLinux(123);
@@ -1328,7 +1420,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ linux: { password: "old-pass" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ linux: { password: "old-pass" } })),
       });
 
       await client.getLastLinux(123);
@@ -1343,7 +1436,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ vnc: { active: false } }),
+        text: () => Promise.resolve(JSON.stringify({ vnc: { active: false } })),
       });
 
       await client.getVnc(123);
@@ -1358,7 +1451,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ vnc: { active: false } }),
+        text: () => Promise.resolve(JSON.stringify({ vnc: { active: false } })),
       });
 
       await client.deactivateVnc(123);
@@ -1373,7 +1466,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ windows: { active: false } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ windows: { active: false } })),
       });
 
       await client.getWindows(123);
@@ -1388,7 +1482,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ windows: { active: false } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ windows: { active: false } })),
       });
 
       await client.deactivateWindows(123);
@@ -1405,7 +1500,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall_template: { id: 1 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall_template: { id: 1 } })),
       });
 
       await client.updateFirewallTemplate(1, "new-name", true, false, false);
@@ -1422,8 +1518,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () =>
-          Promise.resolve({ mac: { ip: "1.2.3.4", mac: "aa:bb:cc:dd:ee:ff" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ mac: { ip: "1.2.3.4", mac: "aa:bb:cc:dd:ee:ff" } })
+          ),
       });
 
       await client.getIpMac("1.2.3.4");
@@ -1438,7 +1536,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ mac: { mac: "aa:bb:cc:dd:ee:ff" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ mac: { mac: "aa:bb:cc:dd:ee:ff" } })
+          ),
       });
 
       await client.getSubnetMac("10.0.0.0");
@@ -1453,6 +1554,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteSubnetMac("10.0.0.0");
@@ -1470,7 +1572,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ vswitch: { id: 1 } }),
+        text: () => Promise.resolve(JSON.stringify({ vswitch: { id: 1 } })),
       });
 
       await client.updateVSwitch(1, "test-name");
@@ -1489,7 +1591,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall_template: { id: 2 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall_template: { id: 2 } })),
       });
 
       await client.createFirewallTemplate("bool-test", false, true, false);
@@ -1506,7 +1609,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ traffic: { data: [] } }),
+        text: () => Promise.resolve(JSON.stringify({ traffic: { data: [] } })),
       });
 
       await client.getTraffic(
@@ -1579,7 +1682,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockKey),
+        text: () => Promise.resolve(JSON.stringify(mockKey)),
       });
 
       const result = await client.getSshKey("ab:cd:ef:12:34");
@@ -1600,7 +1703,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockTemplate),
+        text: () => Promise.resolve(JSON.stringify(mockTemplate)),
       });
 
       const result = await client.getFirewallTemplate(5);
@@ -1616,7 +1719,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall_template: { id: 2 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall_template: { id: 2 } })),
       });
 
       const rules = {
@@ -1653,7 +1757,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall_template: { id: 1 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall_template: { id: 1 } })),
       });
 
       const rules = {
@@ -1695,7 +1800,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall: { status: "active" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall: { status: "active" } })),
       });
 
       const rules = {
@@ -1731,7 +1837,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockVSwitch),
+        text: () => Promise.resolve(JSON.stringify(mockVSwitch)),
       });
 
       const result = await client.getVSwitch(42);
@@ -1747,6 +1853,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteVSwitch(1, "2025-12-31");
@@ -1774,7 +1881,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockBox),
+        text: () => Promise.resolve(JSON.stringify(mockBox)),
       });
 
       const result = await client.getStorageBox(10);
@@ -1795,7 +1902,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockTransaction),
+        text: () => Promise.resolve(JSON.stringify(mockTransaction)),
       });
 
       const result = await client.getServerTransaction("TX-123");
@@ -1813,7 +1920,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ traffic: { data: [] } }),
+        text: () => Promise.resolve(JSON.stringify({ traffic: { data: [] } })),
       });
 
       await client.getTraffic([], [], "2024-01-01", "2024-01-31", "month");
@@ -1829,7 +1936,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ transaction: { id: "TX-2" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ transaction: { id: "TX-2" } })),
       });
 
       await client.orderServer("AX41");
@@ -1843,7 +1951,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ transaction: { id: "TX-3" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ transaction: { id: "TX-3" } })),
       });
 
       await client.orderServerMarket(12_345);
@@ -1857,7 +1966,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ storagebox: { id: 1 } }),
+        text: () => Promise.resolve(JSON.stringify({ storagebox: { id: 1 } })),
       });
 
       await client.updateStorageBox(1);
@@ -1871,7 +1980,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ subaccount: { username: "sub1" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ subaccount: { username: "sub1" } })),
       });
 
       await client.createStorageBoxSubaccount(1, "/home/user");
@@ -1885,7 +1995,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ subaccount: { username: "sub1" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ subaccount: { username: "sub1" } })),
       });
 
       await client.updateStorageBoxSubaccount(1, "sub1");
@@ -1899,7 +2010,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ snapshotplan: { status: "disabled" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ snapshotplan: { status: "disabled" } })
+          ),
       });
 
       await client.updateStorageBoxSnapshotPlan(1, "disabled");
@@ -1913,7 +2027,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ cancellation: { cancelled: true } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ cancellation: { cancelled: true } })
+          ),
       });
 
       await client.cancelServer(123);
@@ -1927,7 +2044,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ rescue: { active: true } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ rescue: { active: true } })),
       });
 
       await client.activateRescue(123, "linux");
@@ -1941,7 +2059,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ linux: { active: true } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ linux: { active: true } })),
       });
 
       await client.activateLinux(123, "Debian-12");
@@ -1955,7 +2074,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ vnc: { active: true } }),
+        text: () => Promise.resolve(JSON.stringify({ vnc: { active: true } })),
       });
 
       await client.activateVnc(123, "Debian-12");
@@ -1969,7 +2088,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ windows: { active: true } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ windows: { active: true } })),
       });
 
       await client.activateWindows(123, "standard");
@@ -1983,7 +2103,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall: { status: "disabled" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall: { status: "disabled" } })),
       });
 
       await client.updateFirewall(123, "disabled");
@@ -1997,7 +2118,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall_template: { id: 3 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall_template: { id: 3 } })),
       });
 
       await client.createFirewallTemplate("minimal-template");
@@ -2011,7 +2133,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ firewall_template: { id: 1 } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ firewall_template: { id: 1 } })),
       });
 
       await client.updateFirewallTemplate(1);
@@ -2025,7 +2148,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ vswitch: { id: 1 } }),
+        text: () => Promise.resolve(JSON.stringify({ vswitch: { id: 1 } })),
       });
 
       await client.updateVSwitch(1);
@@ -2039,6 +2162,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteVSwitch(2);
@@ -2052,7 +2176,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ ip: { ip: "1.2.3.4" } }),
+        text: () => Promise.resolve(JSON.stringify({ ip: { ip: "1.2.3.4" } })),
       });
 
       await client.updateIp("1.2.3.4");
@@ -2066,7 +2190,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ subnet: {} }),
+        text: () => Promise.resolve(JSON.stringify({ subnet: {} })),
       });
 
       await client.updateSubnet("10.0.0.0");
@@ -2082,7 +2206,8 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ failover: { ip: "1.2.3.4" } }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ failover: { ip: "1.2.3.4" } })),
       });
 
       await client.getFailover("1.2.3.4");
@@ -2099,8 +2224,10 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () =>
-          Promise.resolve({ rdns: { ip: "1.2.3.4", ptr: "host.com" } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ rdns: { ip: "1.2.3.4", ptr: "host.com" } })
+          ),
       });
 
       await client.getRdns("1.2.3.4");
@@ -2115,6 +2242,7 @@ describe("HetznerRobotClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
+        text: () => Promise.resolve(""),
       });
 
       await client.deleteRdns("1.2.3.4");

@@ -33,3 +33,6 @@ credentials.json
 # Logs
 *.log
 npm-debug.log*
+
+# Product Finalizer
+.product-finalizer-skip.json

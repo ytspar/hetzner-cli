@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
-import { confirm } from "@inquirer/prompts";
-import { error as fmtError, formatJson } from "../shared/formatter.js";
+import { handleActionError } from "../shared/helpers.js";
 import { HetznerCloudClient } from "./client.js";
 import { resolveToken } from "./context.js";
 
@@ -35,7 +34,6 @@ export function parseLabels(val: string): Record<string, string> {
 /**
  * Read and parse a JSON file, returning the parsed content.
  */
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function readJsonFile<T = unknown>(path: string): T {
   const content = readFileSync(path, "utf-8");
   return JSON.parse(content) as T;
@@ -79,48 +77,7 @@ export function cloudAction<T extends unknown[]>(
       const client = new HetznerCloudClient(token);
       await fn(client, ...(args.slice(0, -1) as unknown as T));
     } catch (error) {
-      if (error instanceof Error) {
-        if (
-          error.message.includes("ExitPromptError") ||
-          error.name === "ExitPromptError"
-        ) {
-          process.exit(0);
-        }
-        console.error(fmtError(error.message));
-      } else {
-        console.error(fmtError("An unknown error occurred"));
-      }
-      process.exit(1);
+      handleActionError(error);
     }
   };
-}
-
-/**
- * Output data as JSON or formatted table based on options.
- */
-export function cloudOutput<T>(
-  data: T,
-  formatter: (data: T) => string,
-  options: CloudActionOptions
-): void {
-  console.log(options.json ? formatJson(data) : formatter(data));
-}
-
-/**
- * Confirm destructive action unless --yes flag is set.
- */
-export async function cloudConfirm(
-  message: string,
-  options: CloudActionOptions,
-  defaultValue = false
-): Promise<boolean> {
-  if (options.yes) {
-    return true;
-  }
-  const confirmed = await confirm({ message, default: defaultValue });
-  if (!confirmed) {
-    console.log("Aborted.");
-    return false;
-  }
-  return true;
 }

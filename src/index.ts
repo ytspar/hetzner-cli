@@ -8,6 +8,14 @@ export {
   filterAuctionServers,
   sortAuctionServers,
 } from "./auction/client.js";
+// Auction Types
+export type {
+  AuctionDiskData,
+  AuctionFilterOptions,
+  AuctionIpPrice,
+  AuctionResponse,
+  AuctionServer,
+} from "./auction/types.js";
 // Cloud Client
 export { HetznerCloudClient } from "./cloud/client.js";
 // Cloud Context
@@ -139,11 +147,3 @@ export {
 } from "./shared/formatter.js";
 // Reference documentation (for LLM context)
 export { generateReference } from "./shared/reference.js";
-// Auction Types
-export type {
-  AuctionDiskData,
-  AuctionFilterOptions,
-  AuctionIpPrice,
-  AuctionResponse,
-  AuctionServer,
-} from "./types.js";

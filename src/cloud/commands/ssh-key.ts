@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { Command } from "commander";
 import { error, success } from "../../shared/formatter.js";
+import { confirmAction, output } from "../../shared/helpers.js";
 import {
   formatCloudSshKeyDetails,
   formatCloudSshKeyList,
@@ -8,8 +9,6 @@ import {
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudConfirm,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -35,7 +34,7 @@ export function registerCloudSshKeyCommands(parent: Command): void {
             label_selector: options.labelSelector,
             sort: options.sort,
           });
-          cloudOutput(keys, formatCloudSshKeyList, options);
+          output(keys, formatCloudSshKeyList, options);
         }
       )
     );
@@ -50,7 +49,7 @@ export function registerCloudSshKeyCommands(parent: Command): void {
             client.listSshKeys({ name })
           );
           const key = await client.getSshKey(id);
-          cloudOutput(key, formatCloudSshKeyDetails, options);
+          output(key, formatCloudSshKeyDetails, options);
         }
       )
     );
@@ -102,7 +101,7 @@ export function registerCloudSshKeyCommands(parent: Command): void {
           );
           const key = await client.getSshKey(id);
           if (
-            !(await cloudConfirm(
+            !(await confirmAction(
               `Delete SSH key '${key.name}' (ID: ${id})?`,
               options
             ))

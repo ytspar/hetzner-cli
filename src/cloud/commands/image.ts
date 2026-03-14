@@ -1,11 +1,10 @@
 import type { Command } from "commander";
 import { success } from "../../shared/formatter.js";
+import { confirmAction, output } from "../../shared/helpers.js";
 import { formatImageDetails, formatImageList } from "../formatter.js";
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudConfirm,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -40,7 +39,7 @@ export function registerImageCommands(parent: Command): void {
             architecture: options.architecture,
             status: options.status,
           });
-          cloudOutput(images, formatImageList, options);
+          output(images, formatImageList, options);
         }
       )
     );
@@ -55,7 +54,7 @@ export function registerImageCommands(parent: Command): void {
             client.listImages({ name })
           );
           const img = await client.getImage(id);
-          cloudOutput(img, formatImageDetails, options);
+          output(img, formatImageDetails, options);
         }
       )
     );
@@ -96,7 +95,7 @@ export function registerImageCommands(parent: Command): void {
           );
           const img = await client.getImage(id);
           if (
-            !(await cloudConfirm(
+            !(await confirmAction(
               `Delete image '${img.description}' (ID: ${id})?`,
               options
             ))

@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { success } from "../../shared/formatter.js";
+import { confirmAction, output } from "../../shared/helpers.js";
 import {
   formatPlacementGroupDetails,
   formatPlacementGroupList,
@@ -7,8 +8,6 @@ import {
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudConfirm,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -35,7 +34,7 @@ export function registerPlacementGroupCommands(parent: Command): void {
             label_selector: options.labelSelector,
             sort: options.sort,
           });
-          cloudOutput(groups, formatPlacementGroupList, options);
+          output(groups, formatPlacementGroupList, options);
         }
       )
     );
@@ -51,7 +50,7 @@ export function registerPlacementGroupCommands(parent: Command): void {
             (name) => client.listPlacementGroups({ name })
           );
           const group = await client.getPlacementGroup(id);
-          cloudOutput(group, formatPlacementGroupDetails, options);
+          output(group, formatPlacementGroupDetails, options);
         }
       )
     );
@@ -90,7 +89,7 @@ export function registerPlacementGroupCommands(parent: Command): void {
           );
           const group = await client.getPlacementGroup(id);
           if (
-            !(await cloudConfirm(
+            !(await confirmAction(
               `Delete placement group '${group.name}' (ID: ${id})?`,
               options
             ))

@@ -78,12 +78,13 @@ export class HetznerRobotClient {
       throw new Error(errorMessage);
     }
 
-    // Handle 204 No Content
-    if (response.status === 204) {
+    // Handle empty responses (204 No Content, or 200 with empty body)
+    const text = await response.text();
+    if (!text) {
       return {} as T;
     }
 
-    return response.json() as Promise<T>;
+    return JSON.parse(text) as T;
   }
 
   private encodeParams(

@@ -1,11 +1,10 @@
 import type { Command } from "commander";
 import { success } from "../../shared/formatter.js";
+import { confirmAction, output } from "../../shared/helpers.js";
 import { formatPrimaryIpDetails, formatPrimaryIpList } from "../formatter.js";
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudConfirm,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -26,7 +25,7 @@ export function registerPrimaryIpCommands(parent: Command): void {
           const ips = await client.listPrimaryIps({
             label_selector: options.labelSelector,
           });
-          cloudOutput(ips, formatPrimaryIpList, options);
+          output(ips, formatPrimaryIpList, options);
         }
       )
     );
@@ -41,7 +40,7 @@ export function registerPrimaryIpCommands(parent: Command): void {
             client.listPrimaryIps({ name })
           );
           const ip = await client.getPrimaryIp(id);
-          cloudOutput(ip, formatPrimaryIpDetails, options);
+          output(ip, formatPrimaryIpDetails, options);
         }
       )
     );
@@ -95,7 +94,7 @@ export function registerPrimaryIpCommands(parent: Command): void {
           );
           const ip = await client.getPrimaryIp(id);
           if (
-            !(await cloudConfirm(
+            !(await confirmAction(
               `Delete primary IP '${ip.name}' (ID: ${id})?`,
               options
             ))

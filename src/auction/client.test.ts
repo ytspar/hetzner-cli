@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AuctionServer } from "../types.js";
 import {
   fetchAuctionServers,
   filterAuctionServers,
   sortAuctionServers,
 } from "./client.js";
+import type { AuctionServer } from "./types.js";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);

@@ -1,11 +1,10 @@
 import type { Command } from "commander";
 import { success } from "../../shared/formatter.js";
+import { confirmAction, output } from "../../shared/helpers.js";
 import { formatFloatingIpDetails, formatFloatingIpList } from "../formatter.js";
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudConfirm,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -28,7 +27,7 @@ export function registerFloatingIpCommands(parent: Command): void {
           const ips = await client.listFloatingIps({
             label_selector: options.labelSelector,
           });
-          cloudOutput(ips, formatFloatingIpList, options);
+          output(ips, formatFloatingIpList, options);
         }
       )
     );
@@ -43,7 +42,7 @@ export function registerFloatingIpCommands(parent: Command): void {
             client.listFloatingIps({ name })
           );
           const ip = await client.getFloatingIp(id);
-          cloudOutput(ip, formatFloatingIpDetails, options);
+          output(ip, formatFloatingIpDetails, options);
         }
       )
     );
@@ -96,7 +95,7 @@ export function registerFloatingIpCommands(parent: Command): void {
           );
           const ip = await client.getFloatingIp(id);
           if (
-            !(await cloudConfirm(
+            !(await confirmAction(
               `Delete floating IP '${ip.name}' (ID: ${id})?`,
               options
             ))

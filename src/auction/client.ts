@@ -7,7 +7,7 @@ import type {
   AuctionFilterOptions,
   AuctionResponse,
   AuctionServer,
-} from "../types.js";
+} from "./types.js";
 
 const AUCTION_BASE_URL = "https://www.hetzner.com/_resources/app/data/app";
 

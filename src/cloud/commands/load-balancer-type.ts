@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { output } from "../../shared/helpers.js";
 import {
   formatLoadBalancerTypeDetails,
   formatLoadBalancerTypeList,
@@ -6,7 +7,6 @@ import {
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -22,7 +22,7 @@ export function registerLoadBalancerTypeCommands(parent: Command): void {
     .action(
       cloudAction(async (client, options: CloudActionOptions) => {
         const types = await client.listLoadBalancerTypes();
-        cloudOutput(types, formatLoadBalancerTypeList, options);
+        output(types, formatLoadBalancerTypeList, options);
       })
     );
 
@@ -38,7 +38,7 @@ export function registerLoadBalancerTypeCommands(parent: Command): void {
             (name) => client.listLoadBalancerTypes({ name })
           );
           const type = await client.getLoadBalancerType(id);
-          cloudOutput(type, formatLoadBalancerTypeDetails, options);
+          output(type, formatLoadBalancerTypeDetails, options);
         }
       )
     );

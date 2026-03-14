@@ -50,10 +50,6 @@ describe("shared/helpers", () => {
   });
 
   describe("asyncAction", () => {
-    // Note: getClient() caches the client at module level. The first test
-    // creates the client; subsequent tests reuse the cached instance.
-    // We test error handling via fn rejection rather than credential resolution.
-
     it("should create client with flag credentials and call fn", async () => {
       const mockClient = { _id: "test" } as unknown as HetznerRobotClient;
       // biome-ignore lint/complexity/useArrowFunction: must use regular function for constructor mock

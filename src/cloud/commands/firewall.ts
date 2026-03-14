@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { success } from "../../shared/formatter.js";
+import { confirmAction, output } from "../../shared/helpers.js";
 import {
   formatCloudFirewallDetails,
   formatCloudFirewallList,
@@ -7,8 +8,6 @@ import {
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudConfirm,
-  cloudOutput,
   parseLabels,
   readJsonFile,
   resolveIdOrName,
@@ -34,7 +33,7 @@ export function registerCloudFirewallCommands(parent: Command): void {
           const firewalls = await client.listFirewalls({
             label_selector: options.labelSelector,
           });
-          cloudOutput(firewalls, formatCloudFirewallList, options);
+          output(firewalls, formatCloudFirewallList, options);
         }
       )
     );
@@ -49,7 +48,7 @@ export function registerCloudFirewallCommands(parent: Command): void {
             client.listFirewalls({ name })
           );
           const fw = await client.getFirewall(id);
-          cloudOutput(fw, formatCloudFirewallDetails, options);
+          output(fw, formatCloudFirewallDetails, options);
         }
       )
     );
@@ -98,7 +97,7 @@ export function registerCloudFirewallCommands(parent: Command): void {
           );
           const fw = await client.getFirewall(id);
           if (
-            !(await cloudConfirm(
+            !(await confirmAction(
               `Delete firewall '${fw.name}' (ID: ${id})?`,
               options
             ))

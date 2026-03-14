@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { Command } from "commander";
 import { error, success } from "../../shared/formatter.js";
+import { confirmAction, output } from "../../shared/helpers.js";
 import {
   formatCertificateDetails,
   formatCertificateList,
@@ -8,8 +9,6 @@ import {
 import {
   type CloudActionOptions,
   cloudAction,
-  cloudConfirm,
-  cloudOutput,
   resolveIdOrName,
 } from "../helpers.js";
 
@@ -40,7 +39,7 @@ export function registerCertificateCommands(parent: Command): void {
             sort: options.sort,
             type: options.type,
           });
-          cloudOutput(certs, formatCertificateList, options);
+          output(certs, formatCertificateList, options);
         }
       )
     );
@@ -55,7 +54,7 @@ export function registerCertificateCommands(parent: Command): void {
             client.listCertificates({ name })
           );
           const certificate = await client.getCertificate(id);
-          cloudOutput(certificate, formatCertificateDetails, options);
+          output(certificate, formatCertificateDetails, options);
         }
       )
     );
@@ -129,7 +128,7 @@ export function registerCertificateCommands(parent: Command): void {
           );
           const certificate = await client.getCertificate(id);
           if (
-            !(await cloudConfirm(
+            !(await confirmAction(
               `Delete certificate '${certificate.name}' (ID: ${id})?`,
               options
             ))

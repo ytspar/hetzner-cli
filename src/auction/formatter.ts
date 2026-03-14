@@ -1,5 +1,5 @@
 import { colorize, createTable, heading, info } from "../shared/formatter.js";
-import type { AuctionServer } from "../types.js";
+import type { AuctionServer } from "./types.js";
 
 function summarizeDisks(server: AuctionServer): string {
   const parts: string[] = [];
