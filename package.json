@@ -1,6 +1,6 @@
 {
   "name": "hetzner-cli",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Unified CLI and Node.js library for Hetzner Robot API (dedicated servers) and Cloud API",
   "type": "module",
   "main": "./dist/index.js",
