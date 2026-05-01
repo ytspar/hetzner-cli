@@ -15,7 +15,11 @@ import { outputSchemas } from "./shared/schemas.js";
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
 
-config();
+// `quiet: true` suppresses dotenv 17's "[dotenv@…] injecting env (0) from .env"
+// banner that otherwise lands on stdout for every command. The banner breaks
+// any consumer that pipes `hetzner --json …` into jq, since the first line of
+// stdout is no longer parseable JSON.
+config({ quiet: true });
 
 const program = new Command();
 

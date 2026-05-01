@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { confirm, input, password as passwordPrompt } from "@inquirer/prompts";
 import { config } from "dotenv";
 
-config();
+// `quiet: true` suppresses dotenv 17's "[dotenv@…] injecting env" banner.
+// See src/cli.ts for the full rationale (it breaks JSON-output consumers).
+config({ quiet: true });
 
 const CONFIG_DIR = join(homedir(), ".hetzner-cli");
 const CONFIG_FILE = join(CONFIG_DIR, "config.json");

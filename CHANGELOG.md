@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Suppress dotenv 17's `[dotenv@…] injecting env (0) from .env` banner that
+  was leaking onto stdout for every command. The banner broke any consumer
+  piping `hetzner --json …` into `jq` (cryptic
+  `jq: parse error: Invalid numeric literal at line 1, column 15`). Both
+  `config()` calls now pass `{ quiet: true }` (`src/cli.ts`,
+  `src/shared/config.ts`).
+
 ## [2.4.0] - 2026-03-14
 
 ### Fixed
