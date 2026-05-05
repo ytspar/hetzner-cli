@@ -38,8 +38,8 @@ const mockKeytarSetPassword = vi.mocked(keytar.setPassword);
 const mockKeytarGetPassword = vi.mocked(keytar.getPassword);
 const mockKeytarDeletePassword = vi.mocked(keytar.deletePassword);
 
-const CONFIG_DIR = "/home/testuser/.hetzner-cli";
-const CONTEXTS_FILE = "/home/testuser/.hetzner-cli/cloud-contexts.json";
+const CONFIG_DIR = "/home/testuser/.hctl";
+const CONTEXTS_FILE = "/home/testuser/.hctl/cloud-contexts.json";
 
 function mockLoadContexts(data: {
   active: string | null;
@@ -70,7 +70,7 @@ describe("Cloud Context", () => {
       await createContext("prod", "my-token");
 
       expect(mockKeytarSetPassword).toHaveBeenCalledWith(
-        "hetzner-cli",
+        "hctl",
         "cloud-token:prod",
         "my-token"
       );
@@ -162,7 +162,7 @@ describe("Cloud Context", () => {
       await deleteContext("prod");
 
       expect(mockKeytarDeletePassword).toHaveBeenCalledWith(
-        "hetzner-cli",
+        "hctl",
         "cloud-token:prod"
       );
       const written = JSON.parse(mockWriteFileSync.mock.calls[0][1] as string);

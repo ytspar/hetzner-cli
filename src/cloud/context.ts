@@ -2,9 +2,15 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const CONFIG_DIR = join(homedir(), ".hetzner-cli");
+const CONFIG_DIR = join(homedir(), ".hctl");
 const CONTEXTS_FILE = join(CONFIG_DIR, "cloud-contexts.json");
-const KEYCHAIN_SERVICE = "hetzner-cli";
+const LEGACY_CONTEXTS_FILE = join(
+  homedir(),
+  ".hetzner-cli",
+  "cloud-contexts.json"
+);
+const KEYCHAIN_SERVICE = "hctl";
+const LEGACY_KEYCHAIN_SERVICE = "hetzner-cli";
 
 // Lazy-loaded keytar module
 let keytarModule: typeof import("keytar") | null = null;
@@ -40,11 +46,12 @@ function ensureConfigDir(): void {
 }
 
 function loadContexts(): ContextsConfig {
-  if (!existsSync(CONTEXTS_FILE)) {
+  const file = existsSync(CONTEXTS_FILE) ? CONTEXTS_FILE : LEGACY_CONTEXTS_FILE;
+  if (!existsSync(file)) {
     return { active: null, contexts: {} };
   }
   try {
-    const data = readFileSync(CONTEXTS_FILE, "utf-8");
+    const data = readFileSync(file, "utf-8");
     return JSON.parse(data) as ContextsConfig;
   } catch {
     return { active: null, contexts: {} };
@@ -80,7 +87,7 @@ async function storeToken(
     }
   }
   console.warn(
-    "Warning: System keychain unavailable. Cloud token will be stored in plaintext at ~/.hetzner-cli/cloud-contexts.json"
+    "Warning: System keychain unavailable. Cloud token will be stored in plaintext at ~/.hctl/cloud-contexts.json"
   );
   return false;
 }
@@ -90,10 +97,15 @@ async function retrieveToken(contextName: string): Promise<string | null> {
   const keytar = await getKeytar();
   if (keytar) {
     try {
-      const token = await keytar.getPassword(
-        KEYCHAIN_SERVICE,
-        keychainAccount(contextName)
-      );
+      const token =
+        (await keytar.getPassword(
+          KEYCHAIN_SERVICE,
+          keychainAccount(contextName)
+        )) ??
+        (await keytar.getPassword(
+          LEGACY_KEYCHAIN_SERVICE,
+          keychainAccount(contextName)
+        ));
       if (token) {
         return token;
       }
@@ -113,6 +125,10 @@ async function deleteToken(contextName: string): Promise<void> {
     try {
       await keytar.deletePassword(
         KEYCHAIN_SERVICE,
+        keychainAccount(contextName)
+      );
+      await keytar.deletePassword(
+        LEGACY_KEYCHAIN_SERVICE,
         keychainAccount(contextName)
       );
     } catch {
@@ -152,7 +168,7 @@ export function useContext(name: string): void {
   const config = loadContexts();
   if (!config.contexts[name]) {
     throw new Error(
-      `Context '${name}' not found. Use 'hetzner cloud context list' to see available contexts.`
+      `Context '${name}' not found. Use 'hctl cloud context list' to see available contexts.`
     );
   }
   config.active = name;
@@ -228,6 +244,6 @@ export async function resolveToken(flagToken?: string): Promise<string> {
     "No cloud token found. Use one of:\n" +
       "  --token <token>                  Pass token directly\n" +
       "  HETZNER_CLOUD_TOKEN=<token>      Set environment variable\n" +
-      "  hetzner cloud context create     Configure a named context"
+      "  hctl cloud context create     Configure a named context"
   );
 }

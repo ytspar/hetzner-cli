@@ -1,5 +1,23 @@
 import { colorize, createTable, heading, info } from "../shared/formatter.js";
+import type { AuctionFetchMetadata } from "./client.js";
 import type { AuctionServer } from "./types.js";
+
+export interface AuctionCacheStatus {
+  ageSeconds?: number;
+  fetchedAt: string;
+  serverCount: number;
+  source: string;
+  stale: boolean;
+  updatedAt?: string;
+  url: string;
+}
+
+export interface AuctionStatusSummary extends AuctionCacheStatus {
+  currency: "EUR" | "USD";
+  endpointUrl: string;
+  localCache: AuctionCacheStatus | null;
+  usingLocalFallback: boolean;
+}
 
 function summarizeDisks(server: AuctionServer): string {
   const parts: string[] = [];
@@ -36,6 +54,104 @@ function formatNextReduce(server: AuctionServer): string {
     return `${hours}h ${mins}m`;
   }
   return `${mins}m`;
+}
+
+function formatUpdatedAt(timestamp: string): string {
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) {
+    return timestamp;
+  }
+  return parsed.toLocaleString();
+}
+
+function formatAge(ageSeconds: number): string {
+  if (ageSeconds < 60) {
+    return `${ageSeconds}s ago`;
+  }
+  const minutes = Math.floor(ageSeconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes === 0
+    ? `${hours}h ago`
+    : `${hours}h ${remainingMinutes}m ago`;
+}
+
+function formatSource(source: string): string {
+  if (source === "cloudflare-r2") {
+    return "hosted cache";
+  }
+  if (source === "cloudflare-kv") {
+    return "hosted cache fallback";
+  }
+  if (source === "direct") {
+    return "Hetzner direct";
+  }
+  if (source === "local-cache") {
+    return "local cache";
+  }
+  return source;
+}
+
+export function formatAuctionFetchMetadata(
+  metadata: AuctionFetchMetadata
+): string {
+  const source = formatSource(metadata.source);
+  const updatedAt =
+    metadata.updatedAt === undefined
+      ? `fetched ${formatUpdatedAt(metadata.fetchedAt)}`
+      : `updated ${formatUpdatedAt(metadata.updatedAt)}`;
+  const age =
+    metadata.ageSeconds === undefined
+      ? ""
+      : ` (${formatAge(metadata.ageSeconds)})`;
+  const stale = metadata.stale ? " stale" : "";
+
+  return colorize(
+    `Auction data: ${updatedAt}${age} via ${source}${stale}`,
+    "gray"
+  );
+}
+
+export function formatAuctionStatus(status: AuctionStatusSummary): string {
+  const table = createTable(["Property", "Value"]);
+  table.push(
+    ["Currency", status.currency],
+    ["Endpoint", status.endpointUrl],
+    ["Source", formatSource(status.source)],
+    ["Server Count", status.serverCount.toString()],
+    ["Updated", status.updatedAt ? formatUpdatedAt(status.updatedAt) : "-"],
+    [
+      "Age",
+      status.ageSeconds === undefined ? "-" : formatAge(status.ageSeconds),
+    ],
+    ["Stale", status.stale ? "Yes" : "No"],
+    ["Offline Fallback", status.usingLocalFallback ? "Yes" : "No"]
+  );
+
+  if (status.localCache !== null) {
+    table.push(
+      [
+        "Local Cache Updated",
+        status.localCache.updatedAt
+          ? formatUpdatedAt(status.localCache.updatedAt)
+          : "-",
+      ],
+      [
+        "Local Cache Age",
+        status.localCache.ageSeconds === undefined
+          ? "-"
+          : formatAge(status.localCache.ageSeconds),
+      ],
+      ["Local Cache Servers", status.localCache.serverCount.toString()]
+    );
+  } else {
+    table.push(["Local Cache", "Not seeded"]);
+  }
+
+  return `${heading("Auction Status")}\n${table.toString()}`;
 }
 
 export function formatAuctionList(servers: AuctionServer[]): string {

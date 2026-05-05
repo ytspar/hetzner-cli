@@ -13,6 +13,7 @@ import {
   useContext,
 } from "../context.js";
 import { formatContextList } from "../formatter.js";
+import { printCloudTokenInstructions } from "../token-instructions.js";
 
 export function registerContextCommands(parent: Command): void {
   const context = parent
@@ -27,8 +28,9 @@ export function registerContextCommands(parent: Command): void {
       try {
         let token = options.token;
         if (!token) {
+          printCloudTokenInstructions();
           token = await passwordPrompt({
-            message: `Enter Hetzner Cloud API token for '${name}':`,
+            message: `Paste your Cloud API token for '${name}':`,
             validate: (v) => v.length > 0 || "Token is required",
           });
         }
@@ -94,7 +96,7 @@ export function registerContextCommands(parent: Command): void {
         console.log(fmtSuccess(`Active context: ${active}`));
       } else {
         console.log(
-          fmtWarning("No active context. Run: hetzner cloud context create")
+          fmtWarning("No active context. Run: hctl cloud context create")
         );
       }
     });

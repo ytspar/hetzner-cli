@@ -1,12 +1,38 @@
 # Changelog
 
+## [2.5.0] - 2026-05-06
+
+### Added
+
+- Add a Cloudflare Worker auction cache that refreshes EUR and USD server
+  auction JSON into R2 every 15 minutes, with timestamped historical snapshots.
+- Add hosted-cache auction fetching by default, with `--direct` and
+  `{ source: "direct" }` bypass options.
+- Add `hctl auction status` for human and JSON freshness checks before
+  automation.
+- Add local auction cache fallback for `auction list` and `auction show` when
+  the user's internet connection is unavailable.
+- Add `hctl init` (alias `hctl setup`) — interactive first-time setup wizard
+  that walks through Robot and Cloud credential creation, with explicit links
+  to the Hetzner pages where each credential is generated. Also surfaces the
+  same Cloud-token guidance whenever `hctl cloud context create <name>`
+  prompts for a token interactively.
+
+### Changed
+
+- Rename the package and CLI presentation to `hctl`; publish the npm package
+  as `@ytspar/hctl` while keeping the legacy `hetzner` binary alias.
+- Deploy the website to Cloudflare Pages instead of GitHub Pages.
+- Tighten the Robot and Cloud token-prompt guidance with the precise UI paths
+  for each credential type.
+
 ## [2.4.1] - 2026-05-01
 
 ### Fixed
 
 - Suppress dotenv 17's `[dotenv@…] injecting env (0) from .env` banner that
   was leaking onto stdout for every command. The banner broke any consumer
-  piping `hetzner --json …` into `jq` (cryptic
+  piping `hctl --json …` into `jq` (cryptic
   `jq: parse error: Invalid numeric literal at line 1, column 15`). Both
   `config()` calls now pass `{ quiet: true }` (`src/cli.ts`,
   `src/shared/config.ts`).

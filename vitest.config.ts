@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "cloudflare/**/*.test.js"],
     coverage: {
       provider: "v8",
       reporter: ["text", "text-summary", "html", "json"],
@@ -18,12 +18,14 @@ export default defineConfig({
         "src/config.ts",
         "src/formatter.ts",
         "src/shared/helpers.ts",
+        "src/shared/init.ts",
         "src/shared/reference.ts",
         "src/robot/types.ts",
         "src/robot/commands/**",
         "src/cloud/types.ts",
         "src/cloud/commands/**",
         "src/auction/commands.ts",
+        "src/auction/types.ts",
       ],
       thresholds: {
         lines: 99,

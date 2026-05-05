@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="logo.svg" alt="hetzner-cli logo" width="128" height="128">
+  <img src="logo.svg" alt="hctl logo" width="128" height="128">
 </p>
 
-# hetzner-cli
+# hctl
 
-[![npm version](https://badge.fury.io/js/hetzner-cli.svg)](https://www.npmjs.com/package/hetzner-cli)
+[![npm version](https://badge.fury.io/js/%40ytspar%2Fhctl.svg)](https://www.npmjs.com/package/@ytspar/hctl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**[Website](https://ytspar.github.io/hetzner-cli/)** · **[npm](https://www.npmjs.com/package/hetzner-cli)** · **[GitHub](https://github.com/ytspar/hetzner-cli)**
+**[Website](https://hctl.dev/)** · **[npm](https://www.npmjs.com/package/@ytspar/hctl)** · **[GitHub](https://github.com/ytspar/hetzner-cli)**
 
 Unified CLI and Node.js library for Hetzner's three APIs:
 
@@ -48,20 +48,20 @@ Unified CLI and Node.js library for Hetzner's three APIs:
 
 ## Comparison with Official CLI
 
-Hetzner maintains an official Cloud CLI called [`hcloud`](https://github.com/hetznercloud/cli), written in Go. This project (`hetzner-cli`) is a separate, community-built tool. Here's how they compare:
+Hetzner maintains an official Cloud CLI called [`hcloud`](https://github.com/hetznercloud/cli), written in Go. This project (`hctl`) is a separate, community-built tool. Here's how they compare:
 
-| Feature | [`hcloud`](https://github.com/hetznercloud/cli) (official) | `hetzner-cli` (this project) |
+| Feature | [`hcloud`](https://github.com/hetznercloud/cli) (official) | `hctl` (this project) |
 |---|---|---|
 | **API coverage** | Cloud only | Cloud + Robot + Server Auction |
 | **Language** | Go (single binary) | TypeScript / Node.js |
-| **Install** | Homebrew, apt, binary download | `npm install -g hetzner-cli` |
-| **Library usage** | CLI only | Also usable as a Node.js library (`import { HetznerRobotClient } from 'hetzner-cli'`) |
-| **Interactive mode** | No | Yes (`hetzner interactive`) |
-| **LLM reference** | No | Yes (`hetzner reference` — structured output for LLM context) |
+| **Install** | Homebrew, apt, binary download | `npm install -g @ytspar/hctl` |
+| **Library usage** | CLI only | Also usable as a Node.js library (`import { HetznerRobotClient } from '@ytspar/hctl'`) |
+| **Interactive mode** | No | Yes (`hctl interactive`) |
+| **LLM reference** | No | Yes (`hctl reference` — structured output for LLM context) |
 
 **When to use `hcloud`:** You only need Cloud API access and prefer a native binary with no runtime dependency.
 
-**When to use `hetzner-cli`:** You manage dedicated servers (Robot), browse the server auction, or want a single tool that covers all three Hetzner APIs. Also useful if you need a Node.js library for automation scripts.
+**When to use `hctl`:** You manage dedicated servers (Robot), browse the server auction, or want a single tool that covers all three Hetzner APIs. Also useful if you need a Node.js library for automation scripts.
 
 ---
 
@@ -69,10 +69,10 @@ Hetzner maintains an official Cloud CLI called [`hcloud`](https://github.com/het
 
 ```bash
 # Global CLI
-npm install -g hetzner-cli
+npm install -g @ytspar/hctl
 
 # Or as a project dependency
-npm install hetzner-cli
+npm install @ytspar/hctl
 ```
 
 Requires Node.js >= 18.0.0.
@@ -82,21 +82,17 @@ Requires Node.js >= 18.0.0.
 ## Quick Start
 
 ```bash
-# Set up Robot API credentials (interactive)
-hetzner auth login
+# First-time setup wizard for Robot + Cloud credentials
+hctl init
 
 # List your dedicated servers
-hetzner server list
-
-# Set up Cloud API context
-hetzner cloud context create production
-hetzner cloud context use production
+hctl server list
 
 # List your cloud servers
-hetzner cloud server list
+hctl cloud server list
 
 # Browse the server auction (no login needed)
-hetzner auction list --max-price 60 --ecc --disk-type nvme --sort price
+hctl auction list --max-price 60 --ecc --disk-type nvme --sort price
 ```
 
 ---
@@ -106,6 +102,7 @@ hetzner auction list --max-price 60 --ecc --disk-type nvme --sort price
 ### Robot API Credentials
 
 The Robot API uses a **web service username and password** (separate from your main Hetzner login).
+These credentials are created in the Robot UI at [robot.hetzner.com](https://robot.hetzner.com), not in the Hetzner Cloud Console.
 
 **To create credentials:**
 
@@ -119,35 +116,40 @@ The Robot API uses a **web service username and password** (separate from your m
 |----------|--------|---------|
 | 1 | CLI flags | `--user <username> --password <password>` |
 | 2 | Environment variables | `HETZNER_ROBOT_USER` and `HETZNER_ROBOT_PASSWORD` |
-| 3 | System keychain | Stored by `hetzner auth login` (uses native keytar) |
-| 4 | Config file | `~/.hetzner-cli/config.json` |
+| 3 | System keychain | Stored by `hctl auth login` (uses native keytar) |
+| 4 | Config file | `~/.hctl/config.json` |
 | 5 | Interactive prompt | Asks for username/password at runtime |
 
 **Secure password passing** (keeps password out of shell history):
 
 ```bash
 # From stdin
-echo "$PASSWORD" | hetzner server list -u myuser -p -
+echo "$PASSWORD" | hctl server list -u myuser -p -
 
 # With 1Password
-op read "op://vault/item/password" | hetzner server list -u $(op read "op://vault/item/user") -p -
+op read "op://vault/item/password" | hctl server list -u $(op read "op://vault/item/user") -p -
 
 # From environment
 export HETZNER_ROBOT_USER=myuser
 export HETZNER_ROBOT_PASSWORD=mypassword
-hetzner server list
+hctl server list
 ```
 
 ### Cloud API Token
 
 The Cloud API uses a **bearer token** from the Hetzner Cloud Console.
+Cloud tokens are project-scoped and are created in the Cloud Console at [console.hetzner.cloud](https://console.hetzner.cloud), not in the Robot UI.
 
 **To create a token:**
 
 1. Go to [console.hetzner.cloud](https://console.hetzner.cloud)
-2. Select your project
-3. Navigate to **Security > API Tokens**
-4. Generate a new token
+2. Select your project, or create one
+3. In the left menu, open **Security**
+4. In the top menu, open **API Tokens**
+5. Click **Generate API Token**
+6. Name the token, for example `hctl`
+7. Choose **Read & Write** for full `hctl` management, or **Read** for list/describe-only usage
+8. Copy the token immediately; Hetzner only shows it once
 
 **Token resolution order:**
 
@@ -155,26 +157,45 @@ The Cloud API uses a **bearer token** from the Hetzner Cloud Console.
 |----------|--------|---------|
 | 1 | CLI flag | `--token <token>` per command |
 | 2 | Environment variable | `HETZNER_CLOUD_TOKEN` |
-| 3 | Active context | Set via `hetzner cloud context use <name>` |
+| 3 | Active context | Set via `hctl cloud context use <name>` |
 
 ```bash
+# Interactive Robot + Cloud setup
+hctl init
+
 # Set up a named context (saves token)
-hetzner cloud context create production -t hcloud_xxxxxx
+hctl cloud context create production -t hcloud_xxxxxx
 
 # Switch contexts
-hetzner cloud context use production
+hctl cloud context use production
 
 # Or use inline
-hetzner cloud server list --token hcloud_xxxxxx
+hctl cloud server list --token hcloud_xxxxxx
 ```
 
 ### Auction API (No Auth)
 
-The auction commands use Hetzner's public JSON endpoint. No credentials required.
+The auction commands use the hosted 15-minute Cloudflare cache by default. No credentials required, and normal CLI usage does not hit Hetzner's public JSON endpoint directly.
 
 ```bash
-hetzner auction list
+hctl auction list
+hctl auction list --direct  # bypass the hosted cache and fetch from Hetzner
 ```
+
+Hosted JSON files:
+
+- `https://auction.hctl.dev/live_data_sb_EUR.json`
+- `https://auction.hctl.dev/live_data_sb_USD.json`
+- `https://auction.hctl.dev/metadata.json`
+- `https://auction.hctl.dev/health.json`
+
+If Hetzner's public JSON endpoint is temporarily unavailable, the Cloudflare Worker keeps serving the last good R2 snapshot and records the refresh failure in `metadata.json` and `health.json`. If the cache is empty and Hetzner cannot be reached, the Worker returns `502` with `Retry-After: 300`.
+
+The CLI also keeps a local copy of the most recent successful auction response. If your internet connection is unavailable, `hctl auction list` and `hctl auction show` fall back to that local data and mark it as stale. JSON output remains valid JSON on stdout; stale-cache warnings are written to stderr.
+
+`hctl auction status --json` is the stable machine-readable way to check freshness before automation. `auction diff` and `auction watch` require a current fetch and will not create change snapshots from stale local fallback data.
+
+The Worker stores the current public files in R2 under `latest/` and keeps timestamped copies under `history/YYYY/MM/DD/HHmm/`. Those historical JSON snapshots are intended for later trend analysis in DuckDB or a database.
 
 ---
 
@@ -186,6 +207,7 @@ hetzner auction list
 -u, --user <username>       Robot API username
 -p, --password <password>   Robot API password (use "-" to read from stdin)
 --json                      Output raw JSON instead of formatted tables
+--output-schema             Print TypeScript type for --json output and exit
 -V, --version               Show version number
 -h, --help                  Show help for any command
 ```
@@ -193,8 +215,8 @@ hetzner auction list
 All commands support `--json` for machine-readable output. Pipe to `jq` for filtering:
 
 ```bash
-hetzner server list --json | jq '.[].server.server_ip'
-hetzner auction list --max-price 50 --json | jq '.[].id'
+hctl server list --json | jq '.[].server.server_ip'
+hctl auction list --max-price 50 --json | jq '.[].id'
 ```
 
 ### Robot Commands
@@ -204,25 +226,25 @@ Commands for managing Hetzner dedicated servers via the Robot API.
 #### Authentication
 
 ```bash
-hetzner auth login           # Interactive credential setup
-hetzner auth logout          # Clear saved credentials
-hetzner auth status          # Show current auth source
-hetzner auth test            # Verify credentials work
+hctl auth login           # Interactive credential setup
+hctl auth logout          # Clear saved credentials
+hctl auth status          # Show current auth source
+hctl auth test            # Verify credentials work
 ```
 
 #### Servers
 
 ```bash
-hetzner server list                       # List all servers
-hetzner server get <server>               # Server details (by ID or IP)
-hetzner server rename <server> <name>     # Rename a server
+hctl server list                       # List all servers
+hctl server get <server>               # Server details (by ID or IP)
+hctl server rename <server> <name>     # Rename a server
 ```
 
 #### Reset
 
 ```bash
-hetzner reset options [server]            # Show available reset types
-hetzner reset execute <servers...>        # Reset servers
+hctl reset options [server]            # Show available reset types
+hctl reset execute <servers...>        # Reset servers
   -t, --type <type>                       #   sw|hw|man|power|power_long (default: sw)
   -i, --interactive                       #   Select type interactively
   -y, --yes                               #   Skip confirmation
@@ -231,188 +253,191 @@ hetzner reset execute <servers...>        # Reset servers
 #### Boot Configuration
 
 ```bash
-hetzner boot status <server>              # Show all boot config
+hctl boot status <server>              # Show all boot config
 
 # Rescue system
-hetzner boot rescue activate <server> [-o linux|linuxold|vkvm] [-a 64|32] [-k <fingerprints...>]
-hetzner boot rescue deactivate <server>
-hetzner boot rescue last <server>         # Show last rescue (includes password)
+hctl boot rescue activate <server> [-o linux|linuxold|vkvm] [-a 64|32] [-k <fingerprints...>]
+hctl boot rescue deactivate <server>
+hctl boot rescue last <server>         # Show last rescue (includes password)
 
 # Linux installation
-hetzner boot linux options <server>       # Show available distributions
-hetzner boot linux activate <server> -d <dist> [-a 64|32] [-l en] [-k <fingerprints...>]
-hetzner boot linux deactivate <server>
+hctl boot linux options <server>       # Show available distributions
+hctl boot linux activate <server> -d <dist> [-a 64|32] [-l en] [-k <fingerprints...>]
+hctl boot linux deactivate <server>
 ```
 
 #### IP & Networking
 
 ```bash
-hetzner ip list                           # List all IPs
-hetzner ip get <ip>                       # IP details
-hetzner ip update <ip> [--warnings true|false] [--hourly <mb>] [--daily <mb>] [--monthly <gb>]
-hetzner ip mac get|generate|delete <ip>   # Separate MAC management
+hctl ip list                           # List all IPs
+hctl ip get <ip>                       # IP details
+hctl ip update <ip> [--warnings true|false] [--hourly <mb>] [--daily <mb>] [--monthly <gb>]
+hctl ip mac get|generate|delete <ip>   # Separate MAC management
 
-hetzner subnet list                       # List subnets
-hetzner subnet get <subnet>
+hctl subnet list                       # List subnets
+hctl subnet get <subnet>
 
-hetzner failover list                     # List failover IPs
-hetzner failover get <ip>
-hetzner failover switch <failover-ip> <target-server-ip> [-y]
-hetzner failover delete <ip> [-y]
+hctl failover list                     # List failover IPs
+hctl failover get <ip>
+hctl failover switch <failover-ip> <target-server-ip> [-y]
+hctl failover delete <ip> [-y]
 
-hetzner rdns list                         # List reverse DNS entries
-hetzner rdns get <ip>
-hetzner rdns set <ip> <ptr>               # Create/update
-hetzner rdns delete <ip>
+hctl rdns list                         # List reverse DNS entries
+hctl rdns get <ip>
+hctl rdns set <ip> <ptr>               # Create/update
+hctl rdns delete <ip>
 ```
 
 #### SSH Keys
 
 ```bash
-hetzner key list                          # List all keys
-hetzner key get <fingerprint>
-hetzner key add <name> [-f <path>] [-d <data>]
-hetzner key rename <fingerprint> <name>
-hetzner key delete <fingerprint> [-y]
+hctl key list                          # List all keys
+hctl key get <fingerprint>
+hctl key add <name> [-f <path>] [-d <data>]
+hctl key rename <fingerprint> <name>
+hctl key delete <fingerprint> [-y]
 ```
 
 #### Firewall
 
 ```bash
-hetzner firewall get <server>             # Show config
-hetzner firewall enable|disable <server>
-hetzner firewall delete <server> [-y]     # Delete all rules
+hctl firewall get <server>             # Show config
+hctl firewall enable|disable <server>
+hctl firewall delete <server> [-y]     # Delete all rules
 
-hetzner firewall template list
-hetzner firewall template get|delete <id>
+hctl firewall template list
+hctl firewall template get|delete <id>
 ```
 
 #### vSwitch
 
 ```bash
-hetzner vswitch list
-hetzner vswitch get <id>
-hetzner vswitch create <name> <vlan>
-hetzner vswitch update <id> [-n <name>] [-v <vlan>]
-hetzner vswitch delete <id> [-y] [--date <YYYY-MM-DD>]
-hetzner vswitch add-server <vswitch-id> <server>
-hetzner vswitch remove-server <vswitch-id> <server>
+hctl vswitch list
+hctl vswitch get <id>
+hctl vswitch create <name> <vlan>
+hctl vswitch update <id> [-n <name>] [-v <vlan>]
+hctl vswitch delete <id> [-y] [--date <YYYY-MM-DD>]
+hctl vswitch add-server <vswitch-id> <server>
+hctl vswitch remove-server <vswitch-id> <server>
 ```
 
 #### Storage Box
 
 ```bash
-hetzner storagebox list                   # (alias: storage)
-hetzner storagebox get <id>
-hetzner storagebox update <id> [-n <name>] [--webdav|--samba|--ssh|--external|--zfs true|false]
-hetzner storagebox reset-password <id>
+hctl storagebox list                   # (alias: storage)
+hctl storagebox get <id>
+hctl storagebox update <id> [-n <name>] [--webdav|--samba|--ssh|--external|--zfs true|false]
+hctl storagebox reset-password <id>
 
 # Snapshots
-hetzner storagebox snapshot list|create|delete|revert <box-id> [<name>]
+hctl storagebox snapshot list|create|delete|revert <box-id> [<name>]
 
 # Subaccounts
-hetzner storagebox subaccount list <box-id>
-hetzner storagebox subaccount create <box-id> <home-directory> [--samba|--ssh|--webdav|--external|--readonly true|false]
-hetzner storagebox subaccount delete <box-id> <username> [-y]
+hctl storagebox subaccount list <box-id>
+hctl storagebox subaccount create <box-id> <home-directory> [--samba|--ssh|--webdav|--external|--readonly true|false]
+hctl storagebox subaccount delete <box-id> <username> [-y]
 ```
 
 #### Traffic, WoL, Cancellation, Ordering
 
 ```bash
-hetzner traffic query [-i <ips...>] [-s <subnets...>] [--from <date>] [--to <date>] [-t day|month|year]
-hetzner wol status|send <server>
-hetzner cancel status|request|revoke <server>
-hetzner order products|market|transactions
-hetzner order transaction <id>
+hctl traffic query [-i <ips...>] [-s <subnets...>] [--from <date>] [--to <date>] [-t day|month|year]
+hctl wol status|send <server>
+hctl cancel status|request|revoke <server>
+hctl order products|market|transactions
+hctl order transaction <id>
 ```
 
 #### Interactive Mode
 
 ```bash
-hetzner interactive   # or: hetzner i
+hctl interactive   # or: hctl i
 ```
 
 Menu-driven interface for common operations (list servers, reset, rescue, failover, SSH keys).
 
 ### Cloud Commands
 
-All cloud commands live under `hetzner cloud <resource> <action>`. Add `--token <token>` to any command to override the active context.
+All cloud commands live under `hctl cloud <resource> <action>`. Add `--token <token>` to any command to override the active context.
 
 #### Context Management
 
 ```bash
-hetzner cloud context create <name> [-t <token>]
-hetzner cloud context use <name>
-hetzner cloud context delete <name>
-hetzner cloud context list
-hetzner cloud context active
+hctl cloud context create <name> [-t <token>]
+hctl cloud context use <name>
+hctl cloud context delete <name>
+hctl cloud context list
+hctl cloud context active
 ```
 
 #### Cloud Servers
 
 ```bash
-hetzner cloud server list [-l <label-selector>] [-n <name>] [-s <sort>] [--status <status>]
-hetzner cloud server describe <id>
-hetzner cloud server create --name <name> --type <type> --image <image> [--location <loc>] [--ssh-key <keys...>]
-hetzner cloud server delete <id> [-y]
-hetzner cloud server update <id> [--name <name>]
+hctl cloud server list [-l <label-selector>] [-n <name>] [-s <sort>] [--status <status>]
+hctl cloud server describe <id>
+hctl cloud server create --name <name> --type <type> --image <image> [--location <loc>] [--ssh-key <keys...>]
+hctl cloud server delete <id> [-y]
+hctl cloud server update <id> [--name <name>]
 
 # Power management
-hetzner cloud server poweron|poweroff|reboot|reset|shutdown <id>
+hctl cloud server poweron|poweroff|reboot|reset|shutdown <id>
 
 # Maintenance
-hetzner cloud server rebuild <id> --image <image>
-hetzner cloud server change-type <id> --type <type> [--upgrade-disk]
-hetzner cloud server enable-rescue <id> [--type linux64] [--ssh-key <ids...>]
-hetzner cloud server disable-rescue <id>
-hetzner cloud server enable-backup|disable-backup <id>
-hetzner cloud server create-image <id> [--description <desc>]
-hetzner cloud server attach-iso|detach-iso <id> [--iso <iso>]
-hetzner cloud server reset-password <id>
+hctl cloud server rebuild <id> --image <image>
+hctl cloud server change-type <id> --type <type> [--upgrade-disk]
+hctl cloud server enable-rescue <id> [--type linux64] [--ssh-key <ids...>]
+hctl cloud server disable-rescue <id>
+hctl cloud server enable-backup|disable-backup <id>
+hctl cloud server create-image <id> [--description <desc>]
+hctl cloud server attach-iso|detach-iso <id> [--iso <iso>]
+hctl cloud server reset-password <id>
 
 # Networking
-hetzner cloud server set-rdns <id> --ip <ip> --dns-ptr <ptr>
-hetzner cloud server attach-to-network <id> --network <id> [--ip <ip>]
-hetzner cloud server detach-from-network <id> --network <id>
+hctl cloud server set-rdns <id> --ip <ip> --dns-ptr <ptr>
+hctl cloud server attach-to-network <id> --network <id> [--ip <ip>]
+hctl cloud server detach-from-network <id> --network <id>
 
 # Protection & labels
-hetzner cloud server enable-protection|disable-protection <id>
-hetzner cloud server add-label <id> <key=value>
-hetzner cloud server remove-label <id> <key>
-hetzner cloud server request-console <id>
+hctl cloud server enable-protection|disable-protection <id>
+hctl cloud server add-label <id> <key=value>
+hctl cloud server remove-label <id> <key>
+hctl cloud server request-console <id>
 ```
 
 #### Other Cloud Resources
 
-Each follows the pattern: `hetzner cloud <resource> list|describe|create|delete`
+Each follows the pattern: `hctl cloud <resource> list|describe|create|delete`
 
 ```bash
-hetzner cloud network list|describe|create|delete
-hetzner cloud firewall list|describe|create|delete
-hetzner cloud floating-ip list|describe|create|delete
-hetzner cloud primary-ip list|describe|create|delete
-hetzner cloud volume list|describe|create|delete
-hetzner cloud load-balancer list|describe|create|delete
-hetzner cloud image list|describe|update|delete
-hetzner cloud ssh-key list|describe|create|delete
-hetzner cloud certificate list|describe|create|delete
-hetzner cloud placement-group list|describe|create|delete
+hctl cloud network list|describe|create|delete
+hctl cloud firewall list|describe|create|delete
+hctl cloud floating-ip list|describe|create|delete
+hctl cloud primary-ip list|describe|create|delete
+hctl cloud volume list|describe|create|delete
+hctl cloud load-balancer list|describe|create|delete
+hctl cloud image list|describe|update|delete
+hctl cloud ssh-key list|describe|create|delete
+hctl cloud certificate list|describe|create|delete
+hctl cloud placement-group list|describe|create|delete
 
 # Read-only reference data
-hetzner cloud datacenter list|describe
-hetzner cloud location list|describe
-hetzner cloud server-type list|describe
-hetzner cloud load-balancer-type list|describe
-hetzner cloud iso list|describe
+hctl cloud datacenter list|describe
+hctl cloud location list|describe
+hctl cloud server-type list|describe
+hctl cloud load-balancer-type list|describe
+hctl cloud iso list|describe
 ```
 
 ### Auction Commands
 
-Browse Hetzner's server auction — no authentication required. Data is fetched from the public endpoint and filtered/sorted client-side.
+Browse Hetzner's server auction — no authentication required. Data is fetched from the hosted 15-minute cache and filtered/sorted client-side. Add `--direct` when you want to bypass the cache and fetch directly from Hetzner.
 
 ```bash
-hetzner auction list [options]    # List and filter auction servers
-hetzner auction show <id>         # Detailed view of a single server
+hctl auction list [options]    # List and filter auction servers
+hctl auction show <id>         # Detailed view of a single server
+hctl auction status            # Show hosted/local cache freshness
+hctl auction diff              # Compare current data with the last local snapshot
+hctl auction watch             # Poll for local snapshot changes
 ```
 
 #### Auction List — Full Option Reference
@@ -475,33 +500,50 @@ hetzner auction show <id>         # Detailed view of a single server
 
 ```bash
 --currency <EUR|USD>     # Price currency (default: EUR)
+--direct                 # Fetch directly from Hetzner instead of hosted cache
 --limit <n>              # Limit number of results
 --json                   # Output raw JSON
 ```
+
+#### Auction Status
+
+```bash
+hctl auction status
+hctl auction status --json
+hctl auction status --currency USD
+```
+
+`auction status --json` is the recommended freshness check for scripts and LLM agents. It includes `updatedAt`, `ageSeconds`, `stale`, `source`, `serverCount`, `endpointUrl`, `usingLocalFallback`, and local cache state.
 
 #### Auction Examples
 
 ```bash
 # Browse all servers, cheapest first
-hetzner auction list
+hctl auction list
 
 # Cheap AMD EPYC with NVMe + ECC in Helsinki
-hetzner auction list --cpu epyc --disk-type nvme --ecc --datacenter HEL --sort price
+hctl auction list --cpu epyc --disk-type nvme --ecc --datacenter HEL --sort price
 
 # GPU servers under 150 EUR
-hetzner auction list --gpu --max-price 150
+hctl auction list --gpu --max-price 150
 
 # High-RAM servers with lots of drives
-hetzner auction list --min-ram 256 --min-disk-count 4 --sort ram --desc
+hctl auction list --min-ram 256 --min-disk-count 4 --sort ram --desc
 
 # Cheapest 10 fixed-price NVMe servers
-hetzner auction list --fixed-price --disk-type nvme --sort price --limit 10
+hctl auction list --fixed-price --disk-type nvme --sort price --limit 10
 
 # Auction servers about to drop in price
-hetzner auction list --auction-only --sort next_reduce --limit 20
+hctl auction list --auction-only --sort next_reduce --limit 20
 
 # Export to JSON for scripting
-hetzner auction list --max-price 60 --ecc --json | jq '.[].id'
+hctl auction list --max-price 60 --ecc --json | jq '.[].id'
+
+# Check freshness before automation
+hctl auction status --json
+
+# Bypass the hosted cache
+hctl auction list --direct --max-price 60
 ```
 
 ### Built-in Reference
@@ -509,14 +551,16 @@ hetzner auction list --max-price 60 --ecc --json | jq '.[].id'
 For a complete, structured reference optimized for LLM context windows:
 
 ```bash
-hetzner reference         # or: hetzner ref
+hctl reference         # or: hctl ref
+hctl reference --section auction
+hctl auction status --output-schema
 ```
 
 This prints every command, option, and example in a structured plaintext format designed for easy parsing by language models. Pipe it into your LLM context:
 
 ```bash
-hetzner reference | pbcopy                    # Copy to clipboard (macOS)
-hetzner reference > /tmp/hetzner-ref.txt      # Save to file
+hctl reference | pbcopy                    # Copy to clipboard (macOS)
+hctl reference > /tmp/hctl-ref.txt         # Save to file
 ```
 
 ---
@@ -526,7 +570,7 @@ hetzner reference > /tmp/hetzner-ref.txt      # Save to file
 ### Robot Client
 
 ```typescript
-import { HetznerRobotClient } from 'hetzner-cli';
+import { HetznerRobotClient } from '@ytspar/hctl';
 
 const client = new HetznerRobotClient('username', 'password');
 
@@ -566,7 +610,7 @@ await client.updateFirewall(123456, 'active');
 ### Cloud Client
 
 ```typescript
-import { HetznerCloudClient } from 'hetzner-cli';
+import { HetznerCloudClient } from '@ytspar/hctl';
 
 const client = new HetznerCloudClient('hcloud_xxxxxx');
 
@@ -601,10 +645,23 @@ const { ssh_keys } = await client.listSshKeys();
 ### Auction Client
 
 ```typescript
-import { fetchAuctionServers, filterAuctionServers, sortAuctionServers } from 'hetzner-cli';
+import {
+  fetchAuctionData,
+  fetchAuctionServers,
+  filterAuctionServers,
+  getAuctionDataUrl,
+  sortAuctionServers,
+} from '@ytspar/hctl';
 
-// Fetch all servers (EUR pricing)
+// Fetch all servers from the hosted 15-minute cache (EUR pricing)
 const { server: servers } = await fetchAuctionServers('EUR');
+const { metadata } = await fetchAuctionData('EUR');
+console.log(metadata.updatedAt, metadata.ageSeconds, metadata.source);
+
+// Or bypass the cache and fetch directly from Hetzner
+const live = await fetchAuctionServers('EUR', { source: 'direct' });
+
+console.log(getAuctionDataUrl('EUR'), live.serverCount);
 
 // Filter: cheap ECC NVMe servers in Helsinki
 const filtered = filterAuctionServers(servers, {
@@ -647,7 +704,7 @@ import type {
   // Auction types
   AuctionServer, AuctionDiskData, AuctionIpPrice,
   AuctionFilterOptions, AuctionResponse,
-} from 'hetzner-cli';
+} from '@ytspar/hctl';
 ```
 
 ---
@@ -855,8 +912,10 @@ import type {
 
 | Function | Description |
 |----------|-------------|
-| `fetchAuctionServers(currency?)` | Fetch all servers from public API (EUR or USD) |
+| `fetchAuctionData(currency?, options?)` | Fetch servers plus freshness metadata (`updatedAt`, `ageSeconds`, `source`, `stale`, `url`) |
+| `fetchAuctionServers(currency?, options?)` | Fetch all servers from hosted cache by default, or direct from Hetzner with `{ source: "direct" }` |
 | `filterAuctionServers(servers, filters)` | Apply filter criteria to server array |
+| `getAuctionDataUrl(currency?, options?)` | Resolve the JSON URL used for a cache or direct fetch |
 | `sortAuctionServers(servers, field, desc)` | Sort servers by field |
 
 ---
@@ -865,15 +924,15 @@ import type {
 
 | File | Purpose |
 |------|---------|
-| `~/.hetzner-cli/config.json` | Robot API credentials (file-based fallback) |
-| `~/.hetzner-cli/cloud-contexts.json` | Cloud API contexts and tokens |
+| `~/.hctl/config.json` | Robot API credentials (file-based fallback) |
+| `~/.hctl/cloud-contexts.json` | Cloud API contexts and tokens |
 
 System keychain (via keytar):
 
 | Key | Value |
 |-----|-------|
-| Service | `hetzner-cli` |
-| Account | `credentials` |
+| Service | `hctl` |
+| Account | `robot-api` |
 
 Environment variables:
 
@@ -882,6 +941,54 @@ Environment variables:
 | `HETZNER_ROBOT_USER` | Robot API username |
 | `HETZNER_ROBOT_PASSWORD` | Robot API password |
 | `HETZNER_CLOUD_TOKEN` | Cloud API token (overrides active context) |
+| `HCTL_AUCTION_SOURCE` | Set to `direct` to bypass the hosted auction cache |
+| `HCTL_AUCTION_CACHE_URL` | Override the hosted auction cache base URL |
+
+### Cloudflare Deployment
+
+The website deploys to Cloudflare Pages via `.github/workflows/deploy-website.yml`. The auction cache deploys as a separate Cloudflare Worker via `.github/workflows/deploy-auction-worker.yml`; it refreshes EUR and USD auction JSON into R2 every 15 minutes with the Cron Trigger in `wrangler.auction.toml`.
+
+The Worker validates that Hetzner returns JSON with a `server` array before updating R2. Refresh failures do not overwrite the last good snapshot; they are recorded under the metadata and health endpoints so monitors can detect degraded refreshes.
+
+R2 object layout:
+
+| Prefix | Purpose |
+|--------|---------|
+| `latest/live_data_sb_EUR.json` | Current EUR auction JSON |
+| `latest/live_data_sb_USD.json` | Current USD auction JSON |
+| `history/YYYY/MM/DD/HHmm/live_data_sb_EUR.json` | Historical EUR snapshots |
+| `history/YYYY/MM/DD/HHmm/live_data_sb_USD.json` | Historical USD snapshots |
+| `failures/EUR.json` | Last EUR refresh failure, when present |
+| `failures/USD.json` | Last USD refresh failure, when present |
+
+Required GitHub secret:
+
+| Secret | Purpose |
+|--------|---------|
+| `CLOUDFLARE_API_TOKEN` | Token with Pages, Workers, Workers KV, and Workers R2 edit access |
+
+Optional GitHub variables:
+
+| Variable | Default |
+|----------|---------|
+| `CLOUDFLARE_ACCOUNT_ID` | `fffa2cbba41f8b0e145472fe76c90065` |
+| `CLOUDFLARE_PAGES_PROJECT_NAME` | `hctl` |
+| `WEBSITE_ORIGIN` | `https://hctl.dev` |
+
+Initial setup:
+
+```bash
+npx wrangler pages project create hctl --production-branch main
+npx wrangler r2 bucket create hctl-auction-data
+npx wrangler deploy --config wrangler.auction.toml
+```
+
+Manual deployments:
+
+```bash
+gh workflow run deploy-website.yml
+gh workflow run deploy-auction-worker.yml
+```
 
 ---
 
@@ -890,7 +997,7 @@ Environment variables:
 ```bash
 npm install          # Install dependencies
 npm run build        # Compile TypeScript
-npm test             # Run tests (740 tests across 12 suites)
+npm test             # Run tests
 npm run test:coverage  # Run with coverage report
 npm run test:watch   # Watch mode
 ```
@@ -923,6 +1030,15 @@ src/
     ├── formatter.ts           # Auction formatters
     └── commands.ts            # Auction CLI commands
 ```
+
+### AI Agent Instructions
+
+This repo is developed with help from multiple coding agents. Each reads its own instruction file at the repo root:
+
+- **Claude Code** — `.claude/CLAUDE.md` (project-scoped instructions)
+- **OpenAI Codex / generic agents** — `AGENTS.md`
+
+Both files describe the same code-quality conventions (Ultracite + Biome), so agents produce consistent output regardless of which one is driving.
 
 ---
 

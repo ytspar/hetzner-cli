@@ -60,8 +60,8 @@ const mockKeytarSetPassword = vi.mocked(keytar.setPassword);
 const mockKeytarDeletePassword = vi.mocked(keytar.deletePassword);
 
 describe("Config Module", () => {
-  const configDir = "/home/testuser/.hetzner-cli";
-  const configFile = "/home/testuser/.hetzner-cli/config.json";
+  const configDir = "/home/testuser/.hctl";
+  const configFile = "/home/testuser/.hctl/config.json";
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -161,7 +161,7 @@ describe("Config Module", () => {
       await clearConfig();
 
       expect(mockKeytarDeletePassword).toHaveBeenCalledWith(
-        "hetzner-cli",
+        "hctl",
         "robot-api"
       );
       expect(mockWriteFileSync).toHaveBeenCalledWith(configFile, "{}", {
@@ -247,10 +247,7 @@ describe("Config Module", () => {
           user: "keychainuser",
           password: "keychainpass",
         });
-        expect(mockKeytarGetPassword).toHaveBeenCalledWith(
-          "hetzner-cli",
-          "robot-api"
-        );
+        expect(mockKeytarGetPassword).toHaveBeenCalledWith("hctl", "robot-api");
       });
 
       it("should return null when no keychain entry exists", async () => {
@@ -288,7 +285,7 @@ describe("Config Module", () => {
 
         expect(result).toBe(true);
         expect(mockKeytarSetPassword).toHaveBeenCalledWith(
-          "hetzner-cli",
+          "hctl",
           "robot-api",
           JSON.stringify({ user: "testuser", password: "testpass" })
         );
@@ -310,7 +307,7 @@ describe("Config Module", () => {
         await clearKeychain();
 
         expect(mockKeytarDeletePassword).toHaveBeenCalledWith(
-          "hetzner-cli",
+          "hctl",
           "robot-api"
         );
       });
@@ -503,7 +500,7 @@ describe("Config Module", () => {
 
       expect(result).toEqual({ user: "promptuser", password: "promptpass" });
       expect(mockKeytarSetPassword).toHaveBeenCalledWith(
-        "hetzner-cli",
+        "hctl",
         "robot-api",
         JSON.stringify({ user: "promptuser", password: "promptpass" })
       );
@@ -588,13 +585,13 @@ describe("Config Module", () => {
 
       expect(result).toEqual({ user: "fileuser", password: "filepass" });
       expect(mockKeytarSetPassword).toHaveBeenCalledWith(
-        "hetzner-cli",
+        "hctl",
         "robot-api",
         JSON.stringify({ user: "fileuser", password: "filepass" })
       );
       // Should clear the file after migration
       expect(mockWriteFileSync).toHaveBeenCalledWith(
-        "/home/testuser/.hetzner-cli/config.json",
+        "/home/testuser/.hctl/config.json",
         "{}",
         { mode: 0o600 }
       );

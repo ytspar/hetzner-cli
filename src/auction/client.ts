@@ -9,17 +9,125 @@ import type {
   AuctionServer,
 } from "./types.js";
 
-const AUCTION_BASE_URL = "https://www.hetzner.com/_resources/app/data/app";
+const HETZNER_AUCTION_BASE_URL =
+  "https://www.hetzner.com/_resources/app/data/app";
 
-export async function fetchAuctionServers(
-  currency: "EUR" | "USD" = "EUR"
-): Promise<AuctionResponse> {
-  const url = `${AUCTION_BASE_URL}/live_data_sb_${currency}.json`;
+export const DEFAULT_AUCTION_CACHE_BASE_URL = "https://auction.hctl.dev";
+
+export type AuctionSource = "cache" | "direct";
+
+export interface AuctionFetchOptions {
+  cacheBaseUrl?: string;
+  source?: AuctionSource;
+}
+
+export interface AuctionFetchMetadata {
+  ageSeconds?: number;
+  fetchedAt: string;
+  source: string;
+  stale?: boolean;
+  updatedAt?: string;
+  url: string;
+}
+
+export interface AuctionFetchResult {
+  data: AuctionResponse;
+  metadata: AuctionFetchMetadata;
+}
+
+function trimTrailingSlash(url: string): string {
+  return url.endsWith("/") ? url.slice(0, -1) : url;
+}
+
+function resolveAuctionSource(options: AuctionFetchOptions): AuctionSource {
+  if (options.source !== undefined) {
+    return options.source;
+  }
+  const envSource =
+    process.env.HCTL_AUCTION_SOURCE ?? process.env.HETZNER_CLI_AUCTION_SOURCE;
+  return envSource === "direct" ? "direct" : "cache";
+}
+
+function resolveAuctionBaseUrl(options: AuctionFetchOptions): string {
+  if (resolveAuctionSource(options) === "direct") {
+    return HETZNER_AUCTION_BASE_URL;
+  }
+  return (
+    options.cacheBaseUrl ??
+    process.env.HCTL_AUCTION_CACHE_URL ??
+    process.env.HETZNER_CLI_AUCTION_CACHE_URL ??
+    DEFAULT_AUCTION_CACHE_BASE_URL
+  );
+}
+
+export function getAuctionDataUrl(
+  currency: "EUR" | "USD" = "EUR",
+  options: AuctionFetchOptions = {}
+): string {
+  return `${trimTrailingSlash(resolveAuctionBaseUrl(options))}/live_data_sb_${currency}.json`;
+}
+
+function parseOptionalNumber(value: string | null): number | undefined {
+  if (value === null) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseOptionalBoolean(value: string | null): boolean | undefined {
+  if (value === null) {
+    return undefined;
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return undefined;
+}
+
+function getResponseHeader(response: Response, name: string): string | null {
+  return response.headers?.get?.(name) ?? null;
+}
+
+export async function fetchAuctionData(
+  currency: "EUR" | "USD" = "EUR",
+  options: AuctionFetchOptions = {}
+): Promise<AuctionFetchResult> {
+  const url = getAuctionDataUrl(currency, options);
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch auction data: HTTP ${response.status}`);
   }
-  return response.json() as Promise<AuctionResponse>;
+  const data = (await response.json()) as AuctionResponse;
+  return {
+    data,
+    metadata: {
+      ageSeconds: parseOptionalNumber(
+        getResponseHeader(response, "X-Hctl-Auction-Age-Seconds")
+      ),
+      fetchedAt: new Date().toISOString(),
+      source:
+        getResponseHeader(response, "X-Hctl-Auction-Source") ??
+        resolveAuctionSource(options),
+      stale: parseOptionalBoolean(
+        getResponseHeader(response, "X-Hctl-Auction-Stale")
+      ),
+      updatedAt:
+        getResponseHeader(response, "X-Hctl-Auction-Updated-At") ?? undefined,
+      url,
+    },
+  };
+}
+
+export async function fetchAuctionServers(
+  currency: "EUR" | "USD" = "EUR",
+  options: AuctionFetchOptions = {}
+): Promise<AuctionResponse> {
+  const { data } = await fetchAuctionData(currency, options);
+  return data;
 }
 
 function getTotalDisk(s: AuctionServer): number {

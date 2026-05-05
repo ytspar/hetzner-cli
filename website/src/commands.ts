@@ -1,8 +1,4 @@
-import {
-  type AuctionServer,
-  getAuctionServerById,
-  getAuctionServers,
-} from "./data/auction.ts";
+import type { AuctionServer } from "./data/auction.ts";
 import {
   getCloudFirewallById,
   getCloudFirewalls,
@@ -13,6 +9,13 @@ import {
   getCloudVolumeById,
   getCloudVolumes,
 } from "./data/cloud.ts";
+import {
+  type AuctionCurrency,
+  type AuctionDataset,
+  getAuctionCurrencySymbol,
+  loadAuctionDataset,
+  normalizeAuctionCurrency,
+} from "./data/live-auction.ts";
 import {
   getRobotServerById,
   getRobotServers,
@@ -37,6 +40,7 @@ import {
   getMainHelp,
   getServerHelp,
 } from "./help.ts";
+import { HCTL_VERSION } from "./version.ts";
 
 interface ParsedArgs {
   flags: Record<string, string | boolean>;
@@ -149,12 +153,20 @@ function applyAuctionFilters(
   return result;
 }
 
-function auctionList(flags: Record<string, string | boolean>): string {
+async function auctionList(
+  flags: Record<string, string | boolean>
+): Promise<string> {
   if (flags.help) {
     return getAuctionListHelp();
   }
 
-  let servers = applyAuctionFilters(getAuctionServers(), flags);
+  const currency = normalizeAuctionCurrency(flags.currency);
+  if (currency === null) {
+    return formatError("Use --currency EUR or --currency USD.");
+  }
+
+  const auctionData = await loadAuctionDataset(currency);
+  let servers = applyAuctionFilters(auctionData.servers, flags);
 
   // Sort
   if (flags.sort) {
@@ -178,8 +190,10 @@ function auctionList(flags: Record<string, string | boolean>): string {
     return formatJson(servers);
   }
 
+  const status = formatAuctionDatasetStatus(auctionData);
+
   if (servers.length === 0) {
-    return formatInfo("No servers match the specified filters.");
+    return `${status}${formatInfo("No servers match the specified filters.")}`;
   }
 
   const rows = servers.map((s) => ({
@@ -188,13 +202,13 @@ function auctionList(flags: Record<string, string | boolean>): string {
     ram: `${s.ram_size} GB`,
     disk: truncate(s.hdd_text, 24),
     dc: s.datacenter,
-    price: `€${s.price}`,
+    price: formatAuctionPrice(s.price, auctionData.currency),
     type: s.fixed_price ? "fixed" : "auction",
     reduce: s.fixed_price ? "—" : relativeTime(s.next_reduce_timestamp),
     specials: s.specials.join(", "),
   }));
 
-  return formatTable(
+  return `${status}${formatTable(
     [
       { key: "id", label: "ID", align: "right" },
       { key: "cpu", label: "CPU" },
@@ -208,7 +222,139 @@ function auctionList(flags: Record<string, string | boolean>): string {
     ],
     rows,
     `${servers.length} server${servers.length === 1 ? "" : "s"} found`
+  )}`;
+}
+
+function formatAuctionDatasetStatus(dataset: AuctionDataset): string {
+  if (!dataset.isLive) {
+    const error = dataset.errorMessage ? ` (${dataset.errorMessage})` : "";
+    return formatInfo(
+      `Auction data: hosted ${dataset.requestedCurrency} cache unavailable${error}; showing bundled EUR demo data.`
+    );
+  }
+
+  const stale = dataset.metadata.stale ? " stale" : "";
+  return formatInfo(
+    `Auction data: ${dataset.servers.length} ${dataset.currency} servers from hosted cache${formatAuctionUpdatedPart(
+      dataset
+    )}${stale}.`
   );
+}
+
+function formatAuctionUpdatedPart(dataset: AuctionDataset): string {
+  const updatedAt = dataset.metadata.updatedAt;
+  if (updatedAt === undefined) {
+    return "";
+  }
+
+  const updatedDate = new Date(updatedAt);
+  if (Number.isNaN(updatedDate.getTime())) {
+    return "";
+  }
+
+  const formattedTime = updatedDate.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  return `, updated ${formattedTime}${formatAuctionAge(dataset)}`;
+}
+
+function formatAuctionAge(dataset: AuctionDataset): string {
+  const ageSeconds = getAuctionAgeSeconds(dataset);
+  if (ageSeconds === undefined) {
+    return "";
+  }
+  return ` (${formatElapsedAge(ageSeconds)})`;
+}
+
+function getAuctionAgeSeconds(dataset: AuctionDataset): number | undefined {
+  if (dataset.metadata.ageSeconds !== undefined) {
+    return dataset.metadata.ageSeconds;
+  }
+
+  const updatedAt = dataset.metadata.updatedAt;
+  if (updatedAt === undefined) {
+    return undefined;
+  }
+
+  const updatedTime = Date.parse(updatedAt);
+  if (Number.isNaN(updatedTime)) {
+    return undefined;
+  }
+
+  return Math.max(0, Math.floor((Date.now() - updatedTime) / 1000));
+}
+
+function formatElapsedAge(totalSeconds: number): string {
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s ago`;
+  }
+
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  if (totalMinutes < 60) {
+    return `${totalMinutes}m ago`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours < 24) {
+    return minutes > 0 ? `${hours}h ${minutes}m ago` : `${hours}h ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+  return remainingHours > 0
+    ? `${days}d ${remainingHours}h ago`
+    : `${days}d ago`;
+}
+
+function formatAuctionPrice(value: number, currency: AuctionCurrency): string {
+  const amount = Number.isInteger(value) ? String(value) : value.toFixed(2);
+  return `${getAuctionCurrencySymbol(currency)}${amount}`;
+}
+
+async function auctionStatus(
+  flags: Record<string, string | boolean>
+): Promise<string> {
+  const currency = normalizeAuctionCurrency(flags.currency);
+  if (currency === null) {
+    return formatError("Use --currency EUR or --currency USD.");
+  }
+
+  const auctionData = await loadAuctionDataset(currency);
+  const status = {
+    ageSeconds: getAuctionAgeSeconds(auctionData),
+    currency: auctionData.currency,
+    endpointUrl: auctionData.metadata.url,
+    isLive: auctionData.isLive,
+    requestedCurrency: auctionData.requestedCurrency,
+    serverCount: auctionData.servers.length,
+    source: auctionData.isLive
+      ? (auctionData.metadata.source ?? "hosted-cache")
+      : "bundled-demo",
+    stale: auctionData.metadata.stale ?? !auctionData.isLive,
+    updatedAt: auctionData.metadata.updatedAt,
+  };
+
+  if (flags.json) {
+    return formatJson(status);
+  }
+
+  return formatDetail("Auction Status", [
+    ["Currency", status.currency],
+    ["Endpoint", status.endpointUrl],
+    ["Source", status.source],
+    ["Server Count", String(status.serverCount)],
+    ["Updated", status.updatedAt ?? "—"],
+    [
+      "Age",
+      status.ageSeconds === undefined
+        ? "—"
+        : formatElapsedAge(status.ageSeconds),
+    ],
+    ["Stale", status.stale ? "Yes" : "No"],
+    ["Live", status.isLive ? "Yes" : "No"],
+  ]);
 }
 
 function getSortFn(
@@ -240,46 +386,66 @@ function truncate(s: string, maxLen: number): string {
   return `${s.slice(0, maxLen - 1)}…`;
 }
 
-function auctionShow(idStr: string): string {
+async function auctionShow(
+  idStr: string,
+  flags: Record<string, string | boolean>
+): Promise<string> {
   const id = Number.parseInt(idStr, 10);
   if (Number.isNaN(id)) {
     return formatError("Please provide a valid server ID.");
   }
 
-  const s = getAuctionServerById(id);
-  if (!s) {
-    return formatError(`Server with ID ${id} not found.`);
+  const currency = normalizeAuctionCurrency(flags.currency);
+  if (currency === null) {
+    return formatError("Use --currency EUR or --currency USD.");
   }
 
-  return formatDetail(`Auction Server #${s.id}`, [
-    ["ID", String(s.id)],
-    ["Name", s.name],
-    ["CPU", s.cpu],
-    ["CPU Benchmark", String(s.cpu_benchmark)],
-    ["CPU Count", `${s.cpu_count} cores`],
-    ["RAM", `${s.ram_size} GB`],
-    ["RAM Details", s.ram.join(", ")],
-    ["Disks", s.hdd_text],
-    ["Disk Type", s.disk_type],
-    ["Datacenter", s.datacenter],
-    ["Price", `€${s.price}/month`, "c-green"],
+  const auctionData = await loadAuctionDataset(currency);
+  const s = auctionData.servers.find((server) => server.id === id);
+  if (!s) {
+    return `${formatAuctionDatasetStatus(auctionData)}${formatError(
+      `Server with ID ${id} not found.`
+    )}`;
+  }
+
+  return `${formatAuctionDatasetStatus(auctionData)}${formatDetail(
+    `Auction Server #${s.id}`,
     [
-      "Setup Fee",
-      s.setup_price > 0 ? `€${s.setup_price}` : "None",
-      s.setup_price > 0 ? "c-yellow" : "c-green",
-    ],
-    ["Type", s.fixed_price ? "Fixed Price" : "Auction"],
-    [
-      "Next Reduce",
-      s.fixed_price ? "—" : relativeTime(s.next_reduce_timestamp),
-    ],
-    ["ECC", s.ecc ? "Yes" : "No", s.ecc ? "c-green" : "c-dim"],
-    ["GPU", s.gpu ? "Yes" : "No", s.gpu ? "c-green" : "c-dim"],
-    ["iNIC", s.inic ? "Yes" : "No", s.inic ? "c-green" : "c-dim"],
-    ["IPv4", s.ipv4 ? "Yes" : "No", s.ipv4 ? "c-green" : "c-dim"],
-    ["Traffic", s.traffic],
-    ["Bandwidth", `${s.bandwidth} Mbit/s`],
-  ]);
+      ["ID", String(s.id)],
+      ["Name", s.name],
+      ["CPU", s.cpu],
+      ["CPU Benchmark", String(s.cpu_benchmark)],
+      ["CPU Count", `${s.cpu_count} cores`],
+      ["RAM", `${s.ram_size} GB`],
+      ["RAM Details", s.ram.join(", ")],
+      ["Disks", s.hdd_text],
+      ["Disk Type", s.disk_type],
+      ["Datacenter", s.datacenter],
+      [
+        "Price",
+        `${formatAuctionPrice(s.price, auctionData.currency)}/month`,
+        "c-green",
+      ],
+      [
+        "Setup Fee",
+        s.setup_price > 0
+          ? formatAuctionPrice(s.setup_price, auctionData.currency)
+          : "None",
+        s.setup_price > 0 ? "c-yellow" : "c-green",
+      ],
+      ["Type", s.fixed_price ? "Fixed Price" : "Auction"],
+      [
+        "Next Reduce",
+        s.fixed_price ? "—" : relativeTime(s.next_reduce_timestamp),
+      ],
+      ["ECC", s.ecc ? "Yes" : "No", s.ecc ? "c-green" : "c-dim"],
+      ["GPU", s.gpu ? "Yes" : "No", s.gpu ? "c-green" : "c-dim"],
+      ["iNIC", s.inic ? "Yes" : "No", s.inic ? "c-green" : "c-dim"],
+      ["IPv4", s.ipv4 ? "Yes" : "No", s.ipv4 ? "c-green" : "c-dim"],
+      ["Traffic", s.traffic],
+      ["Bandwidth", `${s.bandwidth} Mbit/s`],
+    ]
+  )}`;
 }
 
 // ---- Cloud Commands ----
@@ -659,7 +825,7 @@ function dispatchCloudAction(
 function dispatchAuction(
   positional: string[],
   flags: Record<string, string | boolean>
-): string {
+): string | Promise<string> {
   if (
     positional.length < 2 ||
     (flags.help === true && positional.length === 1)
@@ -674,7 +840,10 @@ function dispatchAuction(
     if (!positional[2]) {
       return formatError("Usage: auction show <id>");
     }
-    return auctionShow(positional[2]);
+    return auctionShow(positional[2], flags);
+  }
+  if (sub === "status") {
+    return auctionStatus(flags);
   }
   return formatError(
     `Unknown auction command: ${sub}. Run "auction --help" for usage.`
@@ -728,7 +897,7 @@ function dispatchKey(
   return formatError(`Unknown key command: ${sub}`);
 }
 
-export function executeCommand(input: string): string {
+export function executeCommand(input: string): string | Promise<string> {
   const { positional, flags } = parseArgs(input);
 
   if (
@@ -742,7 +911,7 @@ export function executeCommand(input: string): string {
     flags.version ||
     (positional.length === 1 && positional[0] === "version")
   ) {
-    return formatInfo("hetzner-cli v2.2.0");
+    return formatInfo(`hctl v${HCTL_VERSION}`);
   }
 
   const cmd = positional[0];
@@ -751,7 +920,7 @@ export function executeCommand(input: string): string {
     case "help":
       return getMainHelp();
     case "version":
-      return formatInfo("hetzner-cli v2.2.0");
+      return formatInfo(`hctl v${HCTL_VERSION}`);
     case "auction":
       return dispatchAuction(positional, flags);
     case "cloud":

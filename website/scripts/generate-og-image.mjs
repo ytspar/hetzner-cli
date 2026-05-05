@@ -1,7 +1,7 @@
 /**
  * Generate OG image for social media unfurls (Slack, Twitter, Facebook).
  *
- * Composes a 1200x630 SVG with the hetzner-cli "H" logo and Departure Mono
+ * Composes a 1200x630 SVG with the hctl "H" logo and Departure Mono
  * font, then rasterises it to PNG via @resvg/resvg-js.
  *
  * Usage:  node scripts/generate-og-image.mjs
@@ -26,7 +26,7 @@ const BG = "#0c0c1a";
 const ACCENT = "#0891b2"; // teal — matches favicon
 const DIM = "#64748b";
 const TAGLINE = "Unified CLI for Hetzner Robot, Cloud &amp; Server Auction";
-const FOOTER = "github.com/ytspar/hetzner-cli";
+const FOOTER = "hctl.dev";
 
 // ── Recreate the favicon "H" mark as embedded SVG paths ──────────────────────
 // Scaled-up version of the favicon.svg H-mark (originally 512x512)
@@ -83,7 +83,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
         font-size="52"
         fill="${ACCENT}"
         letter-spacing="2">
-    hetzner-cli
+    hctl
   </text>
 
   <!-- Tagline -->

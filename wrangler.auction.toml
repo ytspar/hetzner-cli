@@ -1,0 +1,26 @@
+name = "hctl-auction-cache"
+main = "cloudflare/auction-cache-worker.js"
+compatibility_date = "2026-05-05"
+account_id = "fffa2cbba41f8b0e145472fe76c90065"
+workers_dev = true
+
+[[routes]]
+pattern = "auction.hctl.dev"
+custom_domain = true
+
+[observability]
+enabled = true
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[vars]
+HETZNER_AUCTION_BASE_URL = "https://www.hetzner.com/_resources/app/data/app"
+
+[[kv_namespaces]]
+binding = "AUCTION_CACHE"
+id = "4ddaf01d8ef44121928544ad84e45524"
+
+[[r2_buckets]]
+binding = "AUCTION_BUCKET"
+bucket_name = "hctl-auction-data"

@@ -8,9 +8,12 @@ import { config } from "dotenv";
 // See src/cli.ts for the full rationale (it breaks JSON-output consumers).
 config({ quiet: true });
 
-const CONFIG_DIR = join(homedir(), ".hetzner-cli");
+const CONFIG_DIR = join(homedir(), ".hctl");
 const CONFIG_FILE = join(CONFIG_DIR, "config.json");
-const KEYCHAIN_SERVICE = "hetzner-cli";
+const LEGACY_CONFIG_DIR = join(homedir(), ".hetzner-cli");
+const LEGACY_CONFIG_FILE = join(LEGACY_CONFIG_DIR, "config.json");
+const KEYCHAIN_SERVICE = "hctl";
+const LEGACY_KEYCHAIN_SERVICE = "hetzner-cli";
 const KEYCHAIN_ACCOUNT = "robot-api";
 
 // Lazy-loaded keytar module (optional dependency with native bindings)
@@ -62,7 +65,9 @@ export async function getKeychainCredentials(): Promise<{
     return null;
   }
   try {
-    const stored = await keytar.getPassword(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
+    const stored =
+      (await keytar.getPassword(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT)) ??
+      (await keytar.getPassword(LEGACY_KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT));
     if (!stored) {
       return null;
     }
@@ -110,6 +115,7 @@ export async function clearKeychain(): Promise<void> {
   }
   try {
     await keytar.deletePassword(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
+    await keytar.deletePassword(LEGACY_KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
   } catch {
     // Ignore errors when clearing
   }
@@ -135,11 +141,12 @@ function ensureConfigDir(): void {
  * Load configuration from file
  */
 export function loadConfig(): Config {
-  if (!existsSync(CONFIG_FILE)) {
+  const file = existsSync(CONFIG_FILE) ? CONFIG_FILE : LEGACY_CONFIG_FILE;
+  if (!existsSync(file)) {
     return {};
   }
   try {
-    const data = readFileSync(CONFIG_FILE, "utf-8");
+    const data = readFileSync(file, "utf-8");
     return JSON.parse(data) as Config;
   } catch {
     return {};
@@ -255,12 +262,16 @@ export async function promptLogin(): Promise<{
   console.log("Hetzner Robot API Authentication");
   console.log("─".repeat(40));
   console.log("");
-  console.log("To get your API credentials:");
-  console.log("1. Go to https://robot.hetzner.com");
-  console.log("2. Navigate to: Settings > Web service settings");
-  console.log("3. Create a new web service user");
+  console.log("To create Robot web service credentials:");
+  console.log("  1. Open https://robot.hetzner.com");
+  console.log("  2. Top-right menu: Settings > Web service settings");
+  console.log('  3. Click "create access data"');
+  console.log("  4. Choose a username and password");
   console.log("");
-  console.log("Note: This is separate from your main Hetzner login.");
+  console.log(
+    "Note: Robot web service credentials are created in the Robot UI, not in the Cloud Console."
+  );
+  console.log("They are separate from your main Hetzner account login.");
   console.log("");
 
   // Check if we should offer migration from file to keychain
@@ -300,7 +311,7 @@ export async function promptLogin(): Promise<{
   // Determine storage location based on keychain availability
   const storageMessage = keychainAvailable
     ? "Save credentials to secure keychain?"
-    : "Save credentials to ~/.hetzner-cli/config.json?";
+    : "Save credentials to ~/.hctl/config.json?";
 
   const save = await confirm({
     message: storageMessage,
@@ -321,7 +332,7 @@ export async function promptLogin(): Promise<{
       saveConfig({ user, password });
       console.log("");
       console.warn(
-        "Warning: System keychain unavailable. Credentials stored in plaintext at ~/.hetzner-cli/config.json"
+        "Warning: System keychain unavailable. Credentials stored in plaintext at ~/.hctl/config.json"
       );
       console.log("Credentials saved to config file.");
     }

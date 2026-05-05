@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  DEFAULT_AUCTION_CACHE_BASE_URL,
+  fetchAuctionData,
   fetchAuctionServers,
   filterAuctionServers,
+  getAuctionDataUrl,
   sortAuctionServers,
 } from "./client.js";
 import type { AuctionServer } from "./types.js";
@@ -57,9 +60,10 @@ describe("fetchAuctionServers", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
-  it("should fetch EUR auction data by default", async () => {
+  it("should fetch EUR auction data from the hosted cache by default", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ server: [], serverCount: 0 }),
@@ -68,11 +72,38 @@ describe("fetchAuctionServers", () => {
     await fetchAuctionServers();
 
     expect(mockFetch).toHaveBeenCalledWith(
+      `${DEFAULT_AUCTION_CACHE_BASE_URL}/live_data_sb_EUR.json`
+    );
+  });
+
+  it("should fetch USD auction data from the hosted cache when specified", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ server: [], serverCount: 0 }),
+    });
+
+    await fetchAuctionServers("USD");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${DEFAULT_AUCTION_CACHE_BASE_URL}/live_data_sb_USD.json`
+    );
+  });
+
+  it("should fetch directly from Hetzner when requested", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ server: [], serverCount: 0 }),
+    });
+
+    await fetchAuctionServers("EUR", { source: "direct" });
+
+    expect(mockFetch).toHaveBeenCalledWith(
       "https://www.hetzner.com/_resources/app/data/app/live_data_sb_EUR.json"
     );
   });
 
-  it("should fetch USD auction data when specified", async () => {
+  it("should fetch directly when HCTL_AUCTION_SOURCE is direct", async () => {
+    vi.stubEnv("HCTL_AUCTION_SOURCE", "direct");
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ server: [], serverCount: 0 }),
@@ -83,6 +114,36 @@ describe("fetchAuctionServers", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       "https://www.hetzner.com/_resources/app/data/app/live_data_sb_USD.json"
     );
+  });
+
+  it("should allow a custom hosted cache base URL", () => {
+    expect(
+      getAuctionDataUrl("EUR", { cacheBaseUrl: "https://example.test/cache/" })
+    ).toBe("https://example.test/cache/live_data_sb_EUR.json");
+  });
+
+  it("should return hosted cache freshness metadata", async () => {
+    mockFetch.mockResolvedValueOnce({
+      headers: new Headers({
+        "X-Hctl-Auction-Age-Seconds": "90",
+        "X-Hctl-Auction-Source": "cloudflare-r2",
+        "X-Hctl-Auction-Stale": "false",
+        "X-Hctl-Auction-Updated-At": "2026-05-05T15:39:54.758Z",
+      }),
+      ok: true,
+      json: () => Promise.resolve({ server: [], serverCount: 0 }),
+    });
+
+    const result = await fetchAuctionData();
+
+    expect(result.data).toEqual({ server: [], serverCount: 0 });
+    expect(result.metadata).toMatchObject({
+      ageSeconds: 90,
+      source: "cloudflare-r2",
+      stale: false,
+      updatedAt: "2026-05-05T15:39:54.758Z",
+      url: `${DEFAULT_AUCTION_CACHE_BASE_URL}/live_data_sb_EUR.json`,
+    });
   });
 
   it("should throw on HTTP error", async () => {

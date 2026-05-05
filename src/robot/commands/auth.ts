@@ -50,7 +50,7 @@ export function registerAuthCommands(parent: Command): void {
           info(`Stored in: ${sourceLabels[creds.source ?? ""] ?? "unknown"}`)
         );
       } else {
-        console.log(warning("Not authenticated. Run: hetzner auth login"));
+        console.log(warning("Not authenticated. Run: hctl auth login"));
       }
     });
 

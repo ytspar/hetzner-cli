@@ -3,8 +3,10 @@ import readmeRaw from "../../README.md?raw";
 import { executeCommand } from "./commands.ts";
 import { renderMarkdown } from "./markdown.ts";
 import { Terminal } from "./terminal.ts";
+import { HCTL_VERSION } from "./version.ts";
 
-// NOTE: All content is hardcoded static strings. No user input is interpolated into the DOM.
+// NOTE: Terminal output is produced by the command and formatter modules, which
+// escape user input and public auction JSON fields before rendering.
 
 const app = document.getElementById("app") as HTMLElement;
 
@@ -22,7 +24,7 @@ for (const cls of ["close", "minimize", "maximize"]) {
 
 const titleText = document.createElement("div");
 titleText.className = "title-bar-text";
-titleText.textContent = "hetzner-cli";
+titleText.textContent = "hctl";
 const demoBadge = document.createElement("span");
 demoBadge.className = "title-demo";
 demoBadge.textContent = "DEMO";
@@ -36,7 +38,7 @@ ghLink.target = "_blank";
 ghLink.rel = "noopener";
 ghLink.textContent = "GitHub";
 const npmLink = document.createElement("a");
-npmLink.href = "https://www.npmjs.com/package/hetzner-cli";
+npmLink.href = "https://www.npmjs.com/package/@ytspar/hctl";
 npmLink.target = "_blank";
 npmLink.rel = "noopener";
 npmLink.textContent = "npm";
@@ -121,8 +123,8 @@ function tmuxBadge(label: string, value: string, href?: string): HTMLElement {
 
 const badgeVersion = tmuxBadge(
   "version",
-  "v2.2.0",
-  "https://www.npmjs.com/package/hetzner-cli"
+  `v${HCTL_VERSION}`,
+  "https://www.npmjs.com/package/@ytspar/hctl"
 );
 const badgeLicense = tmuxBadge(
   "license",
@@ -145,18 +147,18 @@ tmuxRight.className = "tmux-right";
 
 const installBtn = document.createElement("span");
 installBtn.className = "tmux-install";
-installBtn.textContent = "npm i -g hetzner-cli";
+installBtn.textContent = "npm i -g @ytspar/hctl";
 installBtn.title = "Click to copy";
 installBtn.addEventListener("click", () => {
-  navigator.clipboard.writeText("npm install -g hetzner-cli");
+  navigator.clipboard.writeText("npm install -g @ytspar/hctl");
   installBtn.textContent = "copied!";
   setTimeout(() => {
-    installBtn.textContent = "npm i -g hetzner-cli";
+    installBtn.textContent = "npm i -g @ytspar/hctl";
   }, 1500);
 });
 
 const tmuxHost = document.createElement("span");
-tmuxHost.textContent = "demo@hetzner-cli";
+tmuxHost.textContent = "demo@hctl";
 
 const ns = "http://www.w3.org/2000/svg";
 function pixelIcon(
@@ -252,7 +254,7 @@ async function showBootSequence(term: Terminal) {
 
   const bootLogo = document.createElement("div");
   bootLogo.className = "boot-logo";
-  bootLogo.textContent = "hetzner";
+  bootLogo.textContent = "hctl";
   const cursorBoot = document.createElement("span");
   cursorBoot.className = "cursor-boot";
   bootLogo.appendChild(cursorBoot);
@@ -291,7 +293,7 @@ async function showBootSequence(term: Terminal) {
 
   const lines = [
     {
-      text: "Initializing hetzner-cli v2.2.0...",
+      text: `Initializing hctl v${HCTL_VERSION}...`,
       cls: "auth-step",
       delay: 400,
     },
@@ -314,7 +316,7 @@ async function showBootSequence(term: Terminal) {
       cls: "auth-info",
       delay: 350,
     },
-    { text: "  Auction: 40 servers available", cls: "auth-info", delay: 300 },
+    { text: "  Auction: hosted cache connected", cls: "auth-info", delay: 300 },
     { text: "", cls: "auth-step", delay: 200 },
     {
       text: "  [\u2713] Authenticated successfully",

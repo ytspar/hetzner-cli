@@ -964,6 +964,24 @@ interface AuctionServer {
   cat_id?: number;
 }`;
 
+const AUCTION_STATUS = `\
+interface AuctionCacheStatus {
+  ageSeconds?: number;
+  fetchedAt: string;
+  serverCount: number;
+  source: string;
+  stale: boolean;
+  updatedAt?: string;
+  url: string;
+}
+
+interface AuctionStatus extends AuctionCacheStatus {
+  currency: 'EUR' | 'USD';
+  endpointUrl: string;
+  localCache: AuctionCacheStatus | null;
+  usingLocalFallback: boolean;
+}`;
+
 // ---------------------------------------------------------------------------
 // Schema registry
 // ---------------------------------------------------------------------------
@@ -1112,4 +1130,5 @@ export const outputSchemas: Record<string, string> = {
 
   "auction list": `${AUCTION_SERVER}\n\ntype Output = AuctionServer[];`,
   "auction show": `${AUCTION_SERVER}\n\ntype Output = AuctionServer;`,
+  "auction status": `${AUCTION_STATUS}\n\ntype Output = AuctionStatus;`,
 };

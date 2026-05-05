@@ -1,13 +1,35 @@
 // ============================================================================
-// Hetzner CLI - Main Library Export
+// hctl - Main Library Export
 // ============================================================================
 
 // Auction Client
 export {
+  type AuctionFetchMetadata,
+  type AuctionFetchOptions,
+  type AuctionFetchResult,
+  type AuctionSource,
+  DEFAULT_AUCTION_CACHE_BASE_URL,
+  fetchAuctionData,
   fetchAuctionServers,
   filterAuctionServers,
+  getAuctionDataUrl,
   sortAuctionServers,
 } from "./auction/client.js";
+// Auction Diff
+export {
+  computeDiff,
+  type DiffResult,
+  type PriceChange,
+} from "./auction/diff.js";
+// Auction Store
+export {
+  getLatestSnapshot,
+  getSnapshotServers,
+  openDatabase,
+  pruneSnapshots,
+  type StoredSnapshot,
+  saveSnapshot,
+} from "./auction/store.js";
 // Auction Types
 export type {
   AuctionDiskData,

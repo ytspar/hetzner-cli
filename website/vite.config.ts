@@ -1,6 +1,10 @@
+import { createRequire } from "node:module";
 import { defineConfig, type Plugin } from "vite";
 
-const PROD_ORIGIN = "https://ytspar.github.io";
+const require = createRequire(import.meta.url);
+const rootPackage = require("../package.json") as { version: string };
+const PROD_ORIGIN = process.env.VITE_PROD_ORIGIN ?? "https://hctl.dev";
+const BASE_PATH = process.env.VITE_BASE_URL ?? "/";
 
 /**
  * Rewrite relative og:image / twitter:image URLs to absolute during production
@@ -31,9 +35,12 @@ function ogAbsoluteUrls(): Plugin {
 }
 
 export default defineConfig({
+  define: {
+    "import.meta.env.VITE_HCTL_VERSION": JSON.stringify(rootPackage.version),
+  },
   plugins: [ogAbsoluteUrls()],
   root: ".",
-  base: "/hetzner-cli/",
+  base: BASE_PATH,
   build: {
     outDir: "dist",
   },

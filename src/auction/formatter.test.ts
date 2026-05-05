@@ -1,8 +1,92 @@
 import { describe, expect, it } from "vitest";
-import { formatAuctionDetails, formatAuctionList } from "./formatter.js";
+import {
+  formatAuctionDetails,
+  formatAuctionFetchMetadata,
+  formatAuctionList,
+  formatAuctionStatus,
+} from "./formatter.js";
 import type { AuctionServer } from "./types.js";
 
 const RAM_ECC_REGEX = /32 GB\s*ECC/;
+
+describe("formatAuctionFetchMetadata", () => {
+  it("should show hosted cache update time and age", () => {
+    const result = formatAuctionFetchMetadata({
+      ageSeconds: 90,
+      fetchedAt: "2026-05-05T15:41:24.000Z",
+      source: "cloudflare-r2",
+      stale: false,
+      updatedAt: "2026-05-05T15:39:54.758Z",
+      url: "https://auction.hctl.dev/live_data_sb_EUR.json",
+    });
+
+    expect(result).toContain("Auction data:");
+    expect(result).toContain("updated");
+    expect(result).toContain("1m ago");
+    expect(result).toContain("hosted cache");
+  });
+
+  it("should mark stale cache data", () => {
+    const result = formatAuctionFetchMetadata({
+      ageSeconds: 3700,
+      fetchedAt: "2026-05-05T15:41:24.000Z",
+      source: "cloudflare-kv",
+      stale: true,
+      updatedAt: "2026-05-05T14:39:54.758Z",
+      url: "https://auction.hctl.dev/live_data_sb_EUR.json",
+    });
+
+    expect(result).toContain("hosted cache fallback");
+    expect(result).toContain("stale");
+  });
+
+  it("should show local cache data as stale", () => {
+    const result = formatAuctionFetchMetadata({
+      ageSeconds: 600,
+      fetchedAt: "2026-05-05T15:30:00.000Z",
+      source: "local-cache",
+      stale: true,
+      updatedAt: "2026-05-05T15:30:00.000Z",
+      url: "https://auction.hctl.dev/live_data_sb_EUR.json",
+    });
+
+    expect(result).toContain("local cache");
+    expect(result).toContain("10m ago");
+    expect(result).toContain("stale");
+  });
+});
+
+describe("formatAuctionStatus", () => {
+  it("should show freshness and local cache state", () => {
+    const result = formatAuctionStatus({
+      ageSeconds: 120,
+      currency: "EUR",
+      endpointUrl: "https://auction.hctl.dev/live_data_sb_EUR.json",
+      fetchedAt: "2026-05-05T15:02:00.000Z",
+      localCache: {
+        ageSeconds: 120,
+        fetchedAt: "2026-05-05T15:02:00.000Z",
+        serverCount: 376,
+        source: "local-cache",
+        stale: true,
+        updatedAt: "2026-05-05T15:00:00.000Z",
+        url: "https://auction.hctl.dev/live_data_sb_EUR.json",
+      },
+      serverCount: 376,
+      source: "cloudflare-r2",
+      stale: false,
+      updatedAt: "2026-05-05T15:00:00.000Z",
+      url: "https://auction.hctl.dev/live_data_sb_EUR.json",
+      usingLocalFallback: false,
+    });
+
+    expect(result).toContain("Auction Status");
+    expect(result).toContain("hosted cache");
+    expect(result).toContain("376");
+    expect(result).toContain("2m ago");
+    expect(result).toContain("Local Cache");
+  });
+});
 
 function makeServer(overrides: Partial<AuctionServer> = {}): AuctionServer {
   return {

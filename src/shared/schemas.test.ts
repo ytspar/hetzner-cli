@@ -5,7 +5,7 @@ const OUTPUT_TYPE_ARRAY_REGEX = /type Output = .+\[\];/;
 
 describe("outputSchemas", () => {
   it("has the expected number of entries", () => {
-    expect(Object.keys(outputSchemas).length).toBe(67);
+    expect(Object.keys(outputSchemas).length).toBe(68);
   });
 
   it('every entry contains a "type Output" declaration', () => {
@@ -119,6 +119,10 @@ describe("outputSchemas", () => {
 
     it('has "auction show"', () => {
       expect(outputSchemas["auction show"]).toBeDefined();
+    });
+
+    it('has "auction status"', () => {
+      expect(outputSchemas["auction status"]).toBeDefined();
     });
   });
 

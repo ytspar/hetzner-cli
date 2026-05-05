@@ -6,10 +6,10 @@
  * filter/sort correctness). Assertions use ranges and minimum counts rather than
  * specific server IDs since the auction inventory rotates continuously.
  *
- * Current live data characteristics (as of Feb 2025):
- *   ~1000+ servers, price 30-445 EUR, RAM 32-1024 GB, disks 240-231680 GB total,
+ * Current live data characteristics (as of May 2026):
+ *   ~400+ servers, price 38-445 EUR, RAM 32-1024 GB, disks 240-231680 GB total,
  *   datacenters: FSN1-*, HEL1-*, NBG1-*, specials: ECC, GPU, IPv4, iNIC,
- *   ~20 GPU servers, ~600+ ECC, ~240 fixed-price / ~800 auction,
+ *   ~20 GPU servers, many ECC servers, fixed-price and auction inventory,
  *   all bandwidth 1000 Mbit/s, all setup_price 0
  */
 import { beforeAll, describe, expect, it } from "vitest";
@@ -24,22 +24,26 @@ import type { AuctionResponse, AuctionServer } from "./types.js";
 const FSN_PREFIX_REGEX = /^FSN/;
 const HEL_PREFIX_REGEX = /^HEL/;
 const TIME_FORMAT_REGEX = /\d+[hm]/;
+const RUN_LIVE_AUCTION_E2E = process.env.HCTL_RUN_AUCTION_E2E === "1";
+const describeLiveAuction = RUN_LIVE_AUCTION_E2E ? describe : describe.skip;
 
 let data: AuctionResponse;
 let servers: AuctionServer[];
 
-beforeAll(async () => {
-  data = await fetchAuctionServers("EUR");
-  servers = data.server;
-}, 15_000);
+if (RUN_LIVE_AUCTION_E2E) {
+  beforeAll(async () => {
+    data = await fetchAuctionServers("EUR", { source: "direct" });
+    servers = data.server;
+  }, 15_000);
+}
 
 // ============================================================================
 // API Response Structure
 // ============================================================================
 
-describe("e2e: API response structure", () => {
+describeLiveAuction("e2e: API response structure", () => {
   it("should return a non-empty server array", () => {
-    expect(servers.length).toBeGreaterThan(500);
+    expect(servers.length).toBeGreaterThan(300);
     expect(data.serverCount).toBeGreaterThan(0);
   });
 
@@ -141,10 +145,10 @@ describe("e2e: API response structure", () => {
 // Data Range Invariants
 // ============================================================================
 
-describe("e2e: data range invariants", () => {
-  it("price range should span at least 20-500 EUR", () => {
+describeLiveAuction("e2e: data range invariants", () => {
+  it("price range should span the current auction range", () => {
     const prices = servers.map((s) => s.price);
-    expect(Math.min(...prices)).toBeLessThanOrEqual(35);
+    expect(Math.min(...prices)).toBeLessThanOrEqual(45);
     expect(Math.max(...prices)).toBeGreaterThanOrEqual(300);
   });
 
@@ -189,8 +193,8 @@ describe("e2e: data range invariants", () => {
   it("should have both fixed-price and auction servers", () => {
     const fixed = servers.filter((s) => s.fixed_price);
     const auction = servers.filter((s) => !s.fixed_price);
-    expect(fixed.length).toBeGreaterThan(50);
-    expect(auction.length).toBeGreaterThan(200);
+    expect(fixed.length).toBeGreaterThan(0);
+    expect(auction.length).toBeGreaterThan(100);
   });
 
   it("should have GPU servers", () => {
@@ -226,7 +230,7 @@ describe("e2e: data range invariants", () => {
 // Filtering with Real Data
 // ============================================================================
 
-describe("e2e: filtering real data", () => {
+describeLiveAuction("e2e: filtering real data", () => {
   it("maxPrice should reduce result count", () => {
     const all = filterAuctionServers(servers, {});
     const cheap = filterAuctionServers(servers, { maxPrice: 40 });
@@ -256,11 +260,15 @@ describe("e2e: filtering real data", () => {
   });
 
   it("maxHourlyPrice should filter correctly", () => {
-    const cheap = filterAuctionServers(servers, { maxHourlyPrice: 0.06 });
+    const hourlyPrices = [...new Set(servers.map((s) => s.hourly_price))].sort(
+      (a, b) => a - b
+    );
+    const threshold = hourlyPrices[0];
+    const cheap = filterAuctionServers(servers, { maxHourlyPrice: threshold });
     expect(cheap.length).toBeGreaterThan(0);
     expect(cheap.length).toBeLessThan(servers.length);
     for (const s of cheap) {
-      expect(s.hourly_price).toBeLessThanOrEqual(0.06);
+      expect(s.hourly_price).toBeLessThanOrEqual(threshold);
     }
   });
 
@@ -480,7 +488,7 @@ describe("e2e: filtering real data", () => {
 // Sorting with Real Data
 // ============================================================================
 
-describe("e2e: sorting real data", () => {
+describeLiveAuction("e2e: sorting real data", () => {
   it("sort by price ascending should be ordered", () => {
     const sorted = sortAuctionServers(servers, "price", false);
     for (let i = 1; i < sorted.length; i++) {
@@ -593,7 +601,7 @@ describe("e2e: sorting real data", () => {
 // Formatting with Real Data
 // ============================================================================
 
-describe("e2e: formatting real data", () => {
+describeLiveAuction("e2e: formatting real data", () => {
   it("formatAuctionList should render all servers without error", () => {
     const output = formatAuctionList(servers);
     expect(output).toContain("server(s) found");
@@ -670,10 +678,10 @@ describe("e2e: formatting real data", () => {
 // USD Currency Variant
 // ============================================================================
 
-describe("e2e: USD currency", () => {
+describeLiveAuction("e2e: USD currency", () => {
   it("should fetch USD data successfully", async () => {
-    const usd = await fetchAuctionServers("USD");
-    expect(usd.server.length).toBeGreaterThan(500);
+    const usd = await fetchAuctionServers("USD", { source: "direct" });
+    expect(usd.server.length).toBeGreaterThan(300);
     // Same server count as EUR
     expect(usd.server.length).toBe(servers.length);
   }, 15_000);

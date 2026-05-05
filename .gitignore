@@ -3,11 +3,14 @@ node_modules/
 
 # Build output
 dist/
+.wrangler/
+.playwright-mcp/
 
 # Environment files
 .env
 .env.*
 .env.local
+.env.production
 
 # IDE
 .idea/

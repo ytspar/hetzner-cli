@@ -31,7 +31,7 @@ export function formatContextList(
   contexts: { name: string; active: boolean }[]
 ): string {
   if (contexts.length === 0) {
-    return info("No contexts configured. Run: hetzner cloud context create");
+    return info("No contexts configured. Run: hctl cloud context create");
   }
 
   const table = createTable(["Name", "Active"]);

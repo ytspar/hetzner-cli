@@ -1,5 +1,5 @@
 {
-  "name": "hetzner-cli-website",
+  "name": "hctl-website",
   "private": true,
   "version": "1.0.0",
   "type": "module",
