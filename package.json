@@ -117,5 +117,12 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "allowScripts": {
+    "better-sqlite3@12.8.0": true,
+    "esbuild@0.27.3": true,
+    "fsevents@2.3.3": true,
+    "keytar@7.9.0": true,
+    "sleep@6.1.0": true
   }
 }

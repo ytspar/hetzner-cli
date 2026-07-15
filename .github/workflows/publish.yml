@@ -56,7 +56,7 @@ jobs:
 
       - name: Install
         if: steps.version.outputs.publish == 'true'
-        run: npm ci
+        run: npm ci --strict-allow-scripts
 
       - name: Build
         if: steps.version.outputs.publish == 'true'
