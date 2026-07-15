@@ -61,6 +61,7 @@ describe("browser bootstrap helpers", () => {
 
     expect(options.ignoreAllFlags).toBe(true);
     expect(options.args).not.toContain("--no-sandbox");
+    expect(options.args).toContain("--no-first-run");
   });
 
   it("restricts an existing env file after writing the token", () => {

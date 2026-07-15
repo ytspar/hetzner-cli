@@ -7,6 +7,7 @@ import {
 } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { confirm, input, password } from "@inquirer/prompts";
+import { Launcher } from "chrome-launcher";
 import { connect } from "puppeteer-real-browser";
 import { createContext, validateCloudToken } from "./context.js";
 import { HETZNER_CLOUD_CONSOLE_URL } from "./token-instructions.js";
@@ -34,6 +35,18 @@ const DIALOG_INPUT_SELECTOR = 'input[data-test="input"]';
 const READ_PERMISSION_SELECTOR = '[data-test="radio-item--read"]';
 const READ_WRITE_PERMISSION_SELECTOR = '[data-test="radio-item--read_write"]';
 const SELECT_ALL_MODIFIER = process.platform === "darwin" ? "Meta" : "Control";
+const DISABLE_FEATURES_FLAG = "--disable-features=";
+
+function sandboxedChromeFlags(): string[] {
+  const flags = Launcher.defaultFlags()
+    .filter((flag) => flag !== "--disable-component-update")
+    .filter((flag) => !flag.includes("no-sandbox"));
+  return flags.map((flag) =>
+    flag.startsWith(DISABLE_FEATURES_FLAG)
+      ? `${flag},AutomationControlled`
+      : flag
+  );
+}
 
 function resolveEnvFilePath(envFile: string | boolean | undefined): string {
   if (typeof envFile === "string") {
@@ -87,7 +100,11 @@ export function writeEnvToken(envFile: string, token: string): void {
 
 export function browserConnectionOptions(): Parameters<typeof connect>[0] {
   return {
-    args: ["--start-maximized", "--disable-dev-shm-usage"],
+    args: [
+      ...sandboxedChromeFlags(),
+      "--start-maximized",
+      "--disable-dev-shm-usage",
+    ],
     connectOption: {
       defaultViewport: null,
     },
