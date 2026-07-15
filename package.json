@@ -1,6 +1,6 @@
 {
   "name": "@ytspar/hctl",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Unified CLI and Node.js library for Hetzner Robot API, Cloud API, and server auction",
   "type": "module",
   "main": "./dist/index.js",
@@ -95,10 +95,12 @@
   "dependencies": {
     "@inquirer/prompts": "^8.2.0",
     "better-sqlite3": "^12.8.0",
+    "chrome-launcher": "^1.2.1",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.3",
     "dotenv": "^17.2.4",
-    "keytar": "^7.9.0"
+    "keytar": "^7.9.0",
+    "puppeteer-real-browser": "^1.4.4"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.0",

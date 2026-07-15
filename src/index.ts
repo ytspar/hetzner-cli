@@ -48,6 +48,7 @@ export {
   listContexts,
   resolveToken,
   useContext,
+  validateCloudToken,
 } from "./cloud/context.js";
 // Cloud Types
 export type {
