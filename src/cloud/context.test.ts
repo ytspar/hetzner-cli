@@ -28,6 +28,7 @@ import {
   listContexts,
   resolveToken,
   useContext,
+  validateCloudToken,
 } from "./context.js";
 
 const mockExistsSync = vi.mocked(existsSync);
@@ -58,8 +59,8 @@ function mockEmptyContexts() {
 describe("Cloud Context", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // biome-ignore lint/performance/noDelete: delete is required for process.env to actually remove the key
-    delete process.env.HETZNER_CLOUD_TOKEN;
+    vi.unstubAllGlobals();
+    process.env.HETZNER_CLOUD_TOKEN = "";
   });
 
   describe("createContext", () => {
@@ -67,7 +68,7 @@ describe("Cloud Context", () => {
       mockEmptyContexts();
       mockKeytarSetPassword.mockResolvedValue(undefined);
 
-      await createContext("prod", "my-token");
+      await createContext("prod", "my-token", { verify: false });
 
       expect(mockKeytarSetPassword).toHaveBeenCalledWith(
         "hctl",
@@ -84,7 +85,7 @@ describe("Cloud Context", () => {
       mockEmptyContexts();
       mockKeytarSetPassword.mockRejectedValue(new Error("keytar error"));
 
-      await createContext("prod", "my-token");
+      await createContext("prod", "my-token", { verify: false });
 
       const written = JSON.parse(mockWriteFileSync.mock.calls[0][1] as string);
       expect(written.contexts.prod.token).toBe("my-token");
@@ -94,7 +95,7 @@ describe("Cloud Context", () => {
       mockEmptyContexts();
       mockKeytarSetPassword.mockResolvedValue(undefined);
 
-      await createContext("first", "tok");
+      await createContext("first", "tok", { verify: false });
 
       const written = JSON.parse(mockWriteFileSync.mock.calls[0][1] as string);
       expect(written.active).toBe("first");
@@ -107,7 +108,7 @@ describe("Cloud Context", () => {
       });
       mockKeytarSetPassword.mockResolvedValue(undefined);
 
-      await createContext("second", "tok");
+      await createContext("second", "tok", { verify: false });
 
       const written = JSON.parse(mockWriteFileSync.mock.calls[0][1] as string);
       expect(written.active).toBe("existing");
@@ -117,7 +118,7 @@ describe("Cloud Context", () => {
       mockExistsSync.mockReturnValue(false);
       mockKeytarSetPassword.mockResolvedValue(undefined);
 
-      await createContext("test", "tok");
+      await createContext("test", "tok", { verify: false });
 
       expect(mockMkdirSync).toHaveBeenCalledWith(CONFIG_DIR, {
         recursive: true,
@@ -340,6 +341,52 @@ describe("Cloud Context", () => {
       });
 
       await expect(resolveToken()).rejects.toThrow("No cloud token found");
+    });
+  });
+
+  describe("validateCloudToken", () => {
+    it("should accept a token that can read Cloud API resources", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            locations: [],
+            meta: { pagination: { next_page: null } },
+          }),
+        })
+      );
+
+      await expect(validateCloudToken("cloud-token")).resolves.toBeUndefined();
+    });
+
+    it("should reject an empty token before making an API request", async () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+
+      await expect(validateCloudToken("   ")).rejects.toThrow(
+        "Cloud token is empty"
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("should explain when the token is not accepted by Hetzner Cloud", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 401,
+          statusText: "Unauthorized",
+          json: async () => ({
+            error: { code: "unauthorized", message: "Unauthorized" },
+          }),
+        })
+      );
+
+      await expect(validateCloudToken("wrong-token")).rejects.toThrow(
+        "Robot credentials, console logins, Cloudflare tokens, DNS tokens, and R2 tokens will not work"
+      );
     });
   });
 });

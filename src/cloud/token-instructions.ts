@@ -22,5 +22,8 @@ export function printCloudTokenInstructions(): void {
   console.log(
     "This is separate from Robot web service credentials at https://robot.hetzner.com."
   );
+  console.log(
+    "hctl verifies Cloud tokens with api.hetzner.cloud before saving them; use --no-verify only when offline."
+  );
   console.log("");
 }

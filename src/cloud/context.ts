@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { HetznerCloudClient } from "./client.js";
 
 const CONFIG_DIR = join(homedir(), ".hctl");
 const CONTEXTS_FILE = join(CONFIG_DIR, "cloud-contexts.json");
@@ -142,8 +143,13 @@ async function deleteToken(contextName: string): Promise<void> {
  */
 export async function createContext(
   name: string,
-  token: string
+  token: string,
+  options: { verify?: boolean } = {}
 ): Promise<void> {
+  if (options.verify !== false) {
+    await validateCloudToken(token);
+  }
+
   const config = loadContexts();
 
   const storedInKeychain = await storeToken(name, token);
@@ -246,4 +252,38 @@ export async function resolveToken(flagToken?: string): Promise<string> {
       "  HETZNER_CLOUD_TOKEN=<token>      Set environment variable\n" +
       "  hctl cloud context create     Configure a named context"
   );
+}
+
+/**
+ * Validate that a token authenticates against the Hetzner Cloud API.
+ */
+export async function validateCloudToken(token: string): Promise<void> {
+  if (!token.trim()) {
+    throw new Error("Cloud token is empty.");
+  }
+
+  const client = new HetznerCloudClient(token);
+  try {
+    await client.listLocations();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    const normalizedMessage = message.toLowerCase();
+    if (
+      normalizedMessage.includes("401") ||
+      normalizedMessage.includes("unauthorized")
+    ) {
+      throw new Error(
+        "Hetzner Cloud token validation failed: api.hetzner.cloud rejected this token. Create a project API token in the Hetzner Cloud Console; Robot credentials, console logins, Cloudflare tokens, DNS tokens, and R2 tokens will not work."
+      );
+    }
+    if (
+      normalizedMessage.includes("403") ||
+      normalizedMessage.includes("forbidden")
+    ) {
+      throw new Error(
+        "Hetzner Cloud token validation failed: this token authenticated but cannot read Cloud API resources."
+      );
+    }
+    throw new Error(`Hetzner Cloud token validation failed: ${message}`);
+  }
 }

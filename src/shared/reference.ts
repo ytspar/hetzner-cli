@@ -292,6 +292,16 @@ const SECTION_CLOUD = `\
 # --- cloud context: Context/Token Management ---
 hctl cloud context create <name>        # Create a new cloud context (saves token)
   -t, --token <token>                      #   API token (prompts interactively if omitted)
+  --no-verify                              #   Skip validation with api.hetzner.cloud
+hctl cloud context test                 # Validate the resolved Cloud API token
+  -t, --token <token>                      #   Validate this token instead of resolving one
+hctl cloud context bootstrap <name>     # Explicit browser-assisted token creation
+  --project <name>                         #   Cloud project name
+  --create-project                         #   Guide through creating the project first
+  --token-name <name>                      #   API token name to use in Hetzner Console
+  --permission <permission>                #   read or read-write (default: read-write)
+  --write-env [path]                       #   Also write HETZNER_CLOUD_TOKEN to .env or path
+  --no-verify                              #   Skip validation with api.hetzner.cloud
 hctl cloud context use <name>           # Switch to a cloud context (sets it as active)
 hctl cloud context delete <name>        # Delete a cloud context (alias: rm)
 hctl cloud context list                 # List all cloud contexts (alias: ls)

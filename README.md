@@ -166,6 +166,14 @@ hctl init
 # Set up a named context (saves token)
 hctl cloud context create production -t hcloud_xxxxxx
 
+# Verify the resolved token before provisioning
+hctl cloud context test
+
+# Explicit browser-assisted token setup
+hctl cloud context bootstrap placeswhere \
+  --project Placeswhere \
+  --create-project
+
 # Switch contexts
 hctl cloud context use production
 
@@ -363,12 +371,24 @@ All cloud commands live under `hctl cloud <resource> <action>`. Add `--token <to
 #### Context Management
 
 ```bash
-hctl cloud context create <name> [-t <token>]
+hctl cloud context create <name> [-t <token>] [--no-verify]
+hctl cloud context test [-t <token>]
+hctl cloud context bootstrap <name> --project <name> [--create-project] [--write-env [path]]
 hctl cloud context use <name>
 hctl cloud context delete <name>
 hctl cloud context list
 hctl cloud context active
 ```
+
+`hctl cloud context bootstrap` is an explicit opt-in assisted browser flow. It
+opens a visible local real-browser session so you can log in to the Hetzner Cloud
+Console yourself, including 2FA. `hctl` does not ask for or store your console
+password and does not scrape the one-time API token from the page. After Hetzner
+prepares the token form, `hctl` asks for confirmation again before generating
+the credential. Copy the resulting token yourself and paste it into the hidden
+CLI prompt. The token is then validated and saved as a normal `hctl` cloud
+context. Use `--write-env` only when you also want `HETZNER_CLOUD_TOKEN` written
+to a local env file.
 
 #### Cloud Servers
 
