@@ -1,10 +1,17 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, resolve } from "node:path";
 import { confirm, input, password } from "@inquirer/prompts";
 import { connect } from "puppeteer-real-browser";
-import type { Page } from "rebrowser-puppeteer-core";
 import { createContext, validateCloudToken } from "./context.js";
 import { HETZNER_CLOUD_CONSOLE_URL } from "./token-instructions.js";
+
+type Page = Awaited<ReturnType<typeof connect>>["page"];
 
 export type CloudTokenPermission = "read" | "read-write";
 
@@ -26,6 +33,7 @@ const API_TOKENS_LINK_SELECTOR = 'a[href$="/security/tokens"]';
 const DIALOG_INPUT_SELECTOR = 'input[data-test="input"]';
 const READ_PERMISSION_SELECTOR = '[data-test="radio-item--read"]';
 const READ_WRITE_PERMISSION_SELECTOR = '[data-test="radio-item--read_write"]';
+const SELECT_ALL_MODIFIER = process.platform === "darwin" ? "Meta" : "Control";
 
 function resolveEnvFilePath(envFile: string | boolean | undefined): string {
   if (typeof envFile === "string") {
@@ -46,7 +54,9 @@ export function upsertEnvValue(
   key: string,
   value: string
 ): string {
-  const lines = content.length > 0 ? content.split("\n") : [];
+  const normalizedContent = content.replace(TRAILING_NEWLINES_REGEX, "");
+  const lines =
+    normalizedContent.length > 0 ? normalizedContent.split("\n") : [];
   const nextLine = `${key}=${value}`;
   let found = false;
 
@@ -72,6 +82,20 @@ export function writeEnvToken(envFile: string, token: string): void {
   const nextContent = upsertEnvValue(currentContent, ENV_TOKEN_KEY, token);
   mkdirSync(dirname(envFile), { recursive: true });
   writeFileSync(envFile, nextContent, { mode: 0o600 });
+  chmodSync(envFile, 0o600);
+}
+
+export function browserConnectionOptions(): Parameters<typeof connect>[0] {
+  return {
+    args: ["--start-maximized", "--disable-dev-shm-usage"],
+    connectOption: {
+      defaultViewport: null,
+    },
+    headless: false,
+    // puppeteer-real-browser otherwise injects --no-sandbox.
+    ignoreAllFlags: true,
+    turnstile: true,
+  };
 }
 
 interface BrowserHandle {
@@ -219,9 +243,9 @@ async function fillVisibleInput(
     );
     if (filled) {
       await page.mouse.click(filled.x, filled.y);
-      await page.keyboard.down("Meta");
+      await page.keyboard.down(SELECT_ALL_MODIFIER);
       await page.keyboard.press("A");
-      await page.keyboard.up("Meta");
+      await page.keyboard.up(SELECT_ALL_MODIFIER);
       await page.keyboard.type(value);
       await page.keyboard.press("Tab");
       return true;
@@ -377,7 +401,9 @@ async function ensureProjectOpen(
   await closeConsoleOverlays(page);
   if (await clickProjectCard(page, projectName)) {
     await delay(2500);
+    return;
   }
+  throw new Error(`Created project '${projectName}' but could not open it.`);
 }
 
 async function openApiTokenForm(
@@ -459,21 +485,13 @@ async function automateTokenSetup(
 }
 
 async function openConsole(projectName: string): Promise<BrowserSession> {
-  const { browser, page } = await connect({
-    args: ["--start-maximized"],
-    connectOption: {
-      defaultViewport: null,
-    },
-    headless: false,
-    turnstile: true,
-  });
+  const { browser, page } = await connect(browserConnectionOptions());
   await page.goto(HETZNER_CLOUD_CONSOLE_URL, { waitUntil: "domcontentloaded" });
 
   console.log("");
   console.log("A local real-browser session is open.");
   console.log("Use the browser to log in to Hetzner Cloud, including 2FA.");
-  console.log(`Select or create the project: ${projectName}`);
-  console.log("Then open Security -> API Tokens -> Generate API Token.");
+  console.log(`After login, hctl will prepare project '${projectName}'.`);
   console.log("");
   console.log(
     "Leave the browser open until you have copied the generated token."

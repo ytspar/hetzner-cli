@@ -1,5 +1,28 @@
-import { describe, expect, it } from "vitest";
-import { normalizePermission, upsertEnvValue } from "./browser-bootstrap.js";
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  browserConnectionOptions,
+  normalizePermission,
+  upsertEnvValue,
+  writeEnvToken,
+} from "./browser-bootstrap.js";
+
+const temporaryDirectories: string[] = [];
+
+afterEach(() => {
+  for (const directory of temporaryDirectories.splice(0)) {
+    rmSync(directory, { force: true, recursive: true });
+  }
+});
 
 describe("browser bootstrap helpers", () => {
   describe("normalizePermission", () => {
@@ -31,5 +54,27 @@ describe("browser bootstrap helpers", () => {
         )
       ).toBe("A=1\nHETZNER_CLOUD_TOKEN=new\nB=2\n");
     });
+  });
+
+  it("uses browser flags that preserve the Chrome sandbox", () => {
+    const options = browserConnectionOptions();
+
+    expect(options.ignoreAllFlags).toBe(true);
+    expect(options.args).not.toContain("--no-sandbox");
+  });
+
+  it("restricts an existing env file after writing the token", () => {
+    const directory = mkdtempSync(join(tmpdir(), "hctl-env-"));
+    temporaryDirectories.push(directory);
+    const envFile = join(directory, ".env");
+    writeFileSync(envFile, "OTHER=value\n");
+    chmodSync(envFile, 0o644);
+
+    writeEnvToken(envFile, "token");
+
+    expect(readFileSync(envFile, "utf8")).toBe(
+      "OTHER=value\nHETZNER_CLOUD_TOKEN=token\n"
+    );
+    expect(statSync(envFile).mode % 0o1000).toBe(0o600);
   });
 });
