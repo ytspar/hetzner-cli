@@ -142,7 +142,7 @@ export interface CloudSshKey {
 export interface CloudServer {
   backup_window: string | null;
   created: string;
-  datacenter: Datacenter;
+  datacenter?: Datacenter;
   id: number;
   image: Image | null;
   included_traffic: number;
@@ -150,6 +150,7 @@ export interface CloudServer {
   iso: ISO | null;
   labels: Labels;
   load_balancers: number[];
+  location: Location;
   locked: boolean;
   name: string;
   outgoing_traffic: number | null;
@@ -173,7 +174,7 @@ export interface CloudServer {
     firewalls: { id: number; status: "applied" | "pending" }[];
   };
   rescue_enabled: boolean;
-  server_type: ServerType;
+  server_type?: ServerType;
   status:
     | "running"
     | "initializing"

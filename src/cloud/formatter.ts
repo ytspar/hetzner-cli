@@ -288,9 +288,9 @@ export function formatCloudServerList(servers: CloudServer[]): string {
       srv.id.toString(),
       srv.name,
       formatStatus(srv.status),
-      srv.server_type.name,
-      srv.datacenter.name,
-      srv.public_net.ipv4?.ip || "-",
+      srv.server_type?.name ?? "-",
+      srv.location?.name ?? "-",
+      srv.public_net?.ipv4?.ip ?? "-",
       labels.length > 30 ? `${labels.substring(0, 27)}...` : labels,
     ]);
   }
@@ -308,17 +308,22 @@ export function formatCloudServerDetails(srv: CloudServer): string {
     ["Status", formatStatus(srv.status)],
     [
       "Server Type",
-      `${srv.server_type.name} (${srv.server_type.cores} cores, ${srv.server_type.memory} GB RAM)`,
+      srv.server_type
+        ? `${srv.server_type.name} (${srv.server_type.cores} cores, ${srv.server_type.memory} GB RAM)`
+        : "-",
     ],
-    ["Datacenter", `${srv.datacenter.name} (${srv.datacenter.location.city})`],
+    [
+      "Datacenter",
+      srv.location ? `${srv.location.name} (${srv.location.city})` : "-",
+    ],
     [
       "Image",
       srv.image
         ? `${srv.image.description} (${srv.image.name || srv.image.id})`
         : "-",
     ],
-    ["IPv4", srv.public_net.ipv4?.ip || "-"],
-    ["IPv6", srv.public_net.ipv6?.ip || "-"],
+    ["IPv4", srv.public_net?.ipv4?.ip || "-"],
+    ["IPv6", srv.public_net?.ipv6?.ip || "-"],
     ["Primary Disk", `${srv.primary_disk_size} GB`],
     ["Rescue", srv.rescue_enabled ? colorize("Enabled", "yellow") : "Disabled"],
     ["Locked", srv.locked ? colorize("Yes", "red") : "No"],

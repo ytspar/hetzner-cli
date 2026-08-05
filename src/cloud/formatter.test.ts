@@ -164,7 +164,7 @@ function makeCloudServer(overrides: Partial<CloudServer> = {}): CloudServer {
     },
     private_net: [],
     server_type: makeServerType(),
-    datacenter: makeDatacenter(),
+    location: makeLocation(),
     image: makeImage(),
     iso: null,
     rescue_enabled: false,
@@ -556,6 +556,19 @@ describe("Cloud Formatters", () => {
       ]);
       expect(result).toContain("-");
     });
+
+    it("should handle missing location and server_type in list responses", () => {
+      const result = formatCloudServerList([
+        makeCloudServer({
+          location: undefined,
+          server_type: undefined,
+        }),
+      ]);
+      expect(result).toContain("my-server");
+      expect(result).toContain("running");
+      // Both type and datacenter columns should fall back to "-"
+      expect(result).toContain("-");
+    });
   });
 
   describe("formatCloudServerDetails", () => {
@@ -628,6 +641,19 @@ describe("Cloud Formatters", () => {
 
     it("should show dash when image is null", () => {
       const result = formatCloudServerDetails(makeCloudServer({ image: null }));
+      expect(result).toContain("-");
+    });
+
+    it("should show dashes when location and server_type are missing", () => {
+      const result = formatCloudServerDetails(
+        makeCloudServer({
+          location: undefined,
+          server_type: undefined,
+        })
+      );
+      expect(result).toContain("Server: my-server");
+      expect(result).toContain("Server Type");
+      expect(result).toContain("Datacenter");
       expect(result).toContain("-");
     });
 
