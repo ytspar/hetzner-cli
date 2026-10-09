@@ -6,12 +6,14 @@ import { registerCloudFirewallCommands } from "./firewall.js";
 import { registerFloatingIpCommands } from "./floating-ip.js";
 import { registerImageCommands } from "./image.js";
 import { registerIsoCommands } from "./iso.js";
+import { registerInventoryCommands } from "./inventory.js";
 import { registerLoadBalancerCommands } from "./load-balancer.js";
 import { registerLoadBalancerTypeCommands } from "./load-balancer-type.js";
 import { registerLocationCommands } from "./location.js";
 import { registerNetworkCommands } from "./network.js";
 import { registerPlacementGroupCommands } from "./placement-group.js";
 import { registerPrimaryIpCommands } from "./primary-ip.js";
+import { registerPricingCommands } from "./pricing.js";
 import { registerCloudServerCommands } from "./server.js";
 import { registerServerTypeCommands } from "./server-type.js";
 import { registerCloudSshKeyCommands } from "./ssh-key.js";
@@ -32,6 +34,8 @@ export function registerCloudCommands(parent: Command): void {
   registerServerTypeCommands(cloud);
   registerLoadBalancerTypeCommands(cloud);
   registerIsoCommands(cloud);
+  registerPricingCommands(cloud);
+  registerInventoryCommands(cloud);
 
   // Core resources
   registerCloudServerCommands(cloud);

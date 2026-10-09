@@ -260,11 +260,11 @@ export interface FloatingIp {
 // Primary IP
 export interface PrimaryIp {
   assignee_id: number | null;
-  assignee_type: "server";
+  assignee_type: "server" | "load_balancer" | "unassigned";
   auto_delete: boolean;
   blocked: boolean;
   created: string;
-  datacenter: Datacenter;
+  location: Location;
   dns_ptr: { ip: string; dns_ptr: string }[];
   id: number;
   ip: string;
@@ -392,4 +392,43 @@ export interface PlacementGroup {
   name: string;
   servers: number[];
   type: "spread";
+}
+
+// Pricing (GET /pricing)
+export interface PriceAmount {
+  net: string;
+  gross: string;
+}
+
+/** Location-bound price entry; hourly is absent on floating IPs. */
+export interface IpPrice {
+  location: string;
+  price_hourly?: PriceAmount;
+  price_monthly: PriceAmount;
+}
+
+export interface PricingServerTypePrice extends ServerTypePrice {
+  price_per_tb_traffic?: PriceAmount;
+}
+
+export interface NamedTypePricing {
+  name: string;
+  prices: PricingServerTypePrice[];
+}
+
+export interface IpTypePricing {
+  type: "ipv4" | "ipv6";
+  prices: IpPrice[];
+}
+
+export interface CloudPricing {
+  currency: string;
+  vat_rate: string;
+  server_types: NamedTypePricing[];
+  load_balancer_types: NamedTypePricing[];
+  primary_ips: IpTypePricing[];
+  floating_ips: IpTypePricing[];
+  volume: { price_per_gb_month: PriceAmount };
+  image: { price_per_gb_month: PriceAmount };
+  server_backup: { percentage: string };
 }

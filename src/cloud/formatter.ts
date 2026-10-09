@@ -7,9 +7,12 @@ import {
   heading,
   info,
 } from "../shared/formatter.js";
+import type { InventoryReport } from "./inventory.js";
+import { toNumber } from "./pricing.js";
 import type {
   Certificate,
   CloudFirewall,
+  CloudPricing,
   CloudServer,
   CloudSshKey,
   Datacenter,
@@ -25,6 +28,7 @@ import type {
   ServerType,
   Volume,
 } from "./types.js";
+import { warning } from "../shared/formatter.js";
 
 // Context
 export function formatContextList(
@@ -880,5 +884,146 @@ export function formatPlacementGroupDetails(pg: PlacementGroup): string {
     ["Created", formatDate(pg.created)]
   );
   lines.push(table.toString());
+  return lines.join("\n");
+}
+
+// Pricing
+export function formatPricingSummary(pricing: CloudPricing): string {
+  const lines: string[] = [
+    heading("Pricing"),
+    info(
+      `Currency ${pricing.currency}, VAT ${pricing.vat_rate}% — list prices from GET /pricing (not per-account billing)`
+    ),
+    "",
+  ];
+  const serverTable = createTable(["Server Type", "Location", "Monthly (gross)", "Hourly (gross)"]);
+  for (const st of pricing.server_types) {
+    for (const p of st.prices) {
+      serverTable.push([
+        st.name,
+        p.location,
+        toNumber(p.price_monthly)?.toFixed(2) ?? "?",
+        toNumber(p.price_hourly)?.toFixed(4) ?? "?",
+      ]);
+    }
+  }
+  lines.push(heading("Server Types"), serverTable.toString(), "");
+  const lbTable = createTable(["LB Type", "Location", "Monthly (gross)"]);
+  for (const lb of pricing.load_balancer_types) {
+    for (const p of lb.prices) {
+      lbTable.push([lb.name, p.location, toNumber(p.price_monthly)?.toFixed(2) ?? "?"]);
+    }
+  }
+  lines.push(heading("Load Balancer Types"), lbTable.toString(), "");
+  const ipTable = createTable(["Kind", "Type", "Location", "Monthly (gross)"]);
+  for (const ip of pricing.primary_ips) {
+    for (const p of ip.prices) {
+      ipTable.push(["primary", ip.type, p.location, toNumber(p.price_monthly)?.toFixed(2) ?? "?"]);
+    }
+  }
+  for (const ip of pricing.floating_ips) {
+    for (const p of ip.prices) {
+      ipTable.push(["floating", ip.type, p.location, toNumber(p.price_monthly)?.toFixed(2) ?? "?"]);
+    }
+  }
+  lines.push(heading("IPs"), ipTable.toString(), "");
+  lines.push(
+    heading("Storage"),
+    `Volume:        ${toNumber(pricing.volume.price_per_gb_month)?.toFixed(4)} ${pricing.currency}/GB-month (gross)`,
+    `Image:         ${toNumber(pricing.image.price_per_gb_month)?.toFixed(4)} ${pricing.currency}/GB-month (gross)`,
+    `Server backup: ${pricing.server_backup.percentage}% of server price`,
+    "",
+    info(
+      "Hetzner has no billing/invoice API; actual monthly cost depends on runtime, traffic overage and contract discounts."
+    )
+  );
+  return lines.join("\n");
+}
+
+// Inventory
+export function formatInventoryReport(report: InventoryReport): string {
+  const lines: string[] = [heading("Fleet Inventory"), ""];
+  const cost = (v: number | null) => (v === null ? "?" : v.toFixed(2));
+
+  if (report.servers.length > 0) {
+    const table = createTable([
+      "ID", "Name", "Type", "Location", "Status", "IPv4", "Disk", "Vol GB", "Bkp", "Monthly",
+    ]);
+    for (const s of report.servers) {
+      table.push([
+        String(s.id), s.name, s.type ?? "?", s.location,
+        formatStatus(s.status), s.ipv4 ?? "-",
+        `${s.primaryDiskGb}G`, String(s.volumeGb), s.backup ? "yes" : "no",
+        cost(s.monthly),
+      ]);
+    }
+    lines.push(heading(`Servers (${report.servers.length})`), table.toString(), "");
+  }
+
+  if (report.volumes.length > 0) {
+    const table = createTable(["ID", "Name", "Size", "Location", "Status", "Attached To", "Monthly"]);
+    for (const v of report.volumes) {
+      table.push([
+        String(v.id), v.name, `${v.sizeGb}G`, v.location, v.status,
+        v.attachedTo === null ? "-" : String(v.attachedTo), cost(v.monthly),
+      ]);
+    }
+    lines.push(heading(`Volumes (${report.volumes.length})`), table.toString(), "");
+  }
+
+  if (report.ips.length > 0) {
+    const table = createTable(["ID", "Kind", "IP", "Location", "Assigned To", "Monthly"]);
+    for (const ip of report.ips) {
+      table.push([
+        String(ip.id), ip.kind, ip.ip, ip.location, ip.assignedTo ?? "-", cost(ip.monthly),
+      ]);
+    }
+    lines.push(heading(`IP Addresses (${report.ips.length})`), table.toString(), "");
+  }
+
+  if (report.loadBalancers.length > 0) {
+    const table = createTable(["ID", "Name", "Type", "Location", "Targets", "Monthly"]);
+    for (const lb of report.loadBalancers) {
+      table.push([
+        String(lb.id), lb.name, lb.type ?? "?", lb.location, String(lb.targets), cost(lb.monthly),
+      ]);
+    }
+    lines.push(heading(`Load Balancers (${report.loadBalancers.length})`), table.toString(), "");
+  }
+
+  if (report.images.length > 0) {
+    const table = createTable(["ID", "Name", "Type", "Size", "Monthly"]);
+    for (const i of report.images) {
+      table.push([String(i.id), i.name ?? "-", i.type, `${i.sizeGb}G`, cost(i.monthly)]);
+    }
+    lines.push(heading(`Snapshots/Backup Images (${report.images.length})`), table.toString(), "");
+  }
+
+  lines.push(
+    heading("Other Resources"),
+    `Networks: ${report.counts.networks}, Firewalls: ${report.counts.firewalls}, Certificates: ${report.counts.certificates}, SSH Keys: ${report.counts.sshKeys}, Placement Groups: ${report.counts.placementGroups}`,
+    ""
+  );
+
+  const t = report.totals;
+  lines.push(
+    heading("Estimated Monthly Cost"),
+    `Servers:        ${cost(t.servers)} ${report.currency}`,
+    `Volumes:        ${cost(t.volumes)} ${report.currency}`,
+    `IP addresses:   ${cost(t.ips)} ${report.currency}`,
+    `Load balancers: ${cost(t.loadBalancers)} ${report.currency}`,
+    `Images:         ${cost(t.images)} ${report.currency}`,
+    `TOTAL:          ${cost(t.monthly)} ${report.currency} (incl. VAT, list prices)`,
+    "",
+    info(report.note),
+    info("Dedicated (Robot) servers: run 'hctl robot server list' — contract-priced, not in this estimate.")
+  );
+
+  if (report.warnings.length > 0) {
+    lines.push("", heading(`Warnings (${report.warnings.length})`));
+    for (const w of report.warnings) {
+      lines.push(warning(w));
+    }
+  }
   return lines.join("\n");
 }

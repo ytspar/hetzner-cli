@@ -9,6 +9,7 @@ import type {
   CloudAction,
   CloudFirewall,
   CloudFirewallRule,
+  CloudPricing,
   CloudServer,
   CloudSshKey,
   Datacenter,
@@ -154,6 +155,15 @@ export class HetznerCloudClient {
   // =========================================================================
   // Datacenters (read-only)
   // =========================================================================
+
+  // =========================================================================
+  // Pricing (read-only)
+  // =========================================================================
+
+  async getPricing(): Promise<CloudPricing> {
+    const { pricing } = await this.request<{ pricing: CloudPricing }>("/pricing");
+    return pricing;
+  }
 
   async listDatacenters(params: { name?: string } = {}): Promise<Datacenter[]> {
     return await this.listAll<Datacenter>(
